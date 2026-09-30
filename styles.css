@@ -8,7 +8,6 @@ body {
 
 
 /* Navigation */
-
 nav#main-nav {
     background-color: #333;
     padding: 15px 30px;
@@ -23,7 +22,6 @@ nav#main-nav a {
 nav#main-nav a:hover {
     text-decoration: underline;
 }
-
 
 /* Main page content */
 
@@ -63,9 +61,17 @@ section {
     border-radius: 5px;
 }
 
+ul#art {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: var(--space);
+}
+
 
 /* Footer */
-
 footer {
     background-color: #333;
     color: #fff;
