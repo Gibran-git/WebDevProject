@@ -2,7 +2,7 @@
 
 ## 1. Team Members & Roles
 * **Member 1 Gibran** - *Role:* (Personal Boards Slice): Builds the Pinterest-style  grid, pin/unpin toggles, and persistent storage.
-* **Member 2 Name** - *Role:* (Search & Catalog Slice): Builds the catalog explorer, search/filtering across eras and categories, API fetching, and card grid layout.
+* **Member 2 DJ** - *Role:* (Search & Catalog Slice): Builds the catalog explorer, search/filtering across eras and categories, API fetching, and card grid layout.
 * **Member 3 Name** - *Role:* (Artwork Detail & Bio Slice): Builds the dynamic detail view with artist biographies, cultural context panels, and high-resolution image zoom.
 * **Member 4 Brandon Dias** - *Role:* (Community Boards & Comments Slice): Builds the community board browser, board sharing links, and the controlled comment/discussion form.
 
