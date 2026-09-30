@@ -6,13 +6,18 @@ body {
     color: #333;
 }
 
-a {
-    color: #333;
+nav#main-nav {
+    background-color: #333;
+    padding: 10px;
+}
+
+nav#main-nav a {
+    color: #fff;
     text-decoration: none;
     margin-right: 10px;
 }
 
-a:hover {
+nav#main-nav a:hover {
     text-decoration: underline;
 }
 
