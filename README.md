@@ -1,4 +1,4 @@
-# [Team Name] - CSCI 3230U Group Project
+# Exhibito - CSCI 3230U Group Project
 
 ## 1. Team Members & Roles
 * **Member 1 Gibran** - *Role:* (Personal Boards Slice): Builds the Pinterest-style  grid, pin/unpin toggles, and persistent storage.
