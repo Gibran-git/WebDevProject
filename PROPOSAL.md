@@ -1,9 +1,9 @@
-TOPIC:
+**TOPIC:**
 
 We are going to create a digital museum archive website using the Art Institute of Chicago API. It will be an online exhibition for paintings, sculptures, and artifacts across different time periods. We will allow users to create Pinterest-like boards and filter art pieces by specific eras. We will provide detailed information about the actual pieces, their artists, and their acquisition history. It also allows users to create their own virtual rooms based on their tastes, which others can view and review.
 
 
-DATA SOURCE
+**DATA SOURCE**
 
 We will be using the Art Institute of Chicago API. This API returns JSON, which will give a variety of details we can use, such as the title, artist, date, and medium. dimensions, image ID, description, etc.
 
@@ -48,7 +48,7 @@ A sample of the artwork data shape would look like:
   }
 }
 
-COMPETITORS
+**COMPETITORS**
 
 1: Google Arts and Culture: https://artsandculture.google.com/
 
