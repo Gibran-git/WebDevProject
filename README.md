@@ -1,16 +1,16 @@
-# Exhibito - CSCI 3230U Group Project
+# React + Vite
 
-## 1. Team Members & Roles
-* **Member 1 Gibran** - *Role:* (Personal Boards Slice): Builds the Pinterest-style  grid, pin/unpin toggles, and persistent storage.
-* **Member 2 DJ** - *Role:* (Search & Catalog Slice): Builds the catalog explorer, search/filtering across eras and categories, API fetching, and card grid layout.
-* **Member 3 Sanhith** - *Role:* (Artwork Detail & Bio Slice): Builds the dynamic detail view with artist biographies, cultural context panels, and high-resolution image zoom.
-* **Member 4 Brandon Dias** - *Role:* (Community Boards & Comments Slice): Builds the community board browser, board sharing links, and the controlled comment/discussion form.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## 2. Project Topic (Domain)
-* **Domain:** Digital Museum & Fine Art Exhibition Browser
-* **Overview:** A web application allowing users to search, explore, and curate public-domain artworks from major international cultural institutions.
+Currently, two official plugins are available:
 
-## 3. Candidate Data Sources
-* **Art Institute of Chicago API:** `https://api.artic.edu/docs/` 
-* **The Metropolitan Museum of Art Collection API:** `https://metmuseum.github.io/` 
-* **Cleveland Museum of Art Open Access API:** `https://openaccess-api.clevelandart.org/`
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
