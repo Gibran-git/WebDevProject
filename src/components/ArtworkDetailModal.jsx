@@ -1,3 +1,5 @@
+import ArtworkImage from "./ArtworkImage";
+
 export default function ArtworkDetailModal({ artwork, onClose }) {
   if (!artwork) return null;
 
@@ -7,7 +9,7 @@ export default function ArtworkDetailModal({ artwork, onClose }) {
         <button className="close-btn" onClick={onClose} aria-label="Close details">
           ×
         </button>
-        <img src={artwork.imageUrl} alt={artwork.title} className="modal-image" />
+        <ArtworkImage key={artwork.id} artwork={artwork} className="modal-image" />
         <div className="modal-details">
           <h2>{artwork.title}</h2>
           <p className="subtitle">{artwork.artist} — {artwork.date}</p>

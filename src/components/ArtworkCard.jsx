@@ -1,8 +1,10 @@
+import ArtworkImage from "./ArtworkImage";
+
 export default function ArtworkCard({ artwork, onSelect, isSaved, onToggleSave }) {
   return (
     <article className="artwork-card">
       <div className="card-image-wrap" onClick={() => onSelect(artwork)}>
-        <img src={artwork.imageUrl} alt={artwork.title} loading="lazy" />
+        <ArtworkImage artwork={artwork} loading="lazy" />
       </div>
       <div className="card-info">
         <h3>{artwork.title}</h3>
