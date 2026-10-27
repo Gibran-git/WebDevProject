@@ -25,6 +25,26 @@
 
                <p>Tag1     Tag2     Tag3</p>
             </section>
+
+            <section id="comment-section">
+                <h2>Add a Comment </h2>
+                <form id = "comment-form">
+                    <label for = "comment">Your comment:</label>
+                
+                    <textarea 
+                        id = "comment" 
+                        name = "comment" 
+                        rows = "6" 
+                        maxlength = "500"
+                        placeholder = "Write your comment here..."
+                    ></textarea>
+
+                    <p class = "helper"> Maximum 500 characters.</p>
+                    <p id = "comment-error" class = "error"></p>
+                    <button type = "submit"> Submit Comment </button>
+                </form>
+            </section>
+
         </main>
 
     </body>
