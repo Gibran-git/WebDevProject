@@ -39,9 +39,18 @@
                         placeholder = "Write your comment here..."
                     ></textarea>
 
-                    <p class = "helper"> Maximum 500 characters.</p>
-                    <p id = "comment-error" class = "error"></p>
+                    <p id = "comment-help" class = "helper"> Comment must be between 1 and 500 characters.</p>
+                    
+                    <p 
+                        id = "comment-error" 
+                        class = "error" 
+                        role = "alert"
+                    ></p>
+
                     <button type = "submit"> Submit Comment </button>
+
+                    <script src="script.js" defer></script>
+                    <script src="comment.js" defer></script>
                 </form>
             </section>
 
