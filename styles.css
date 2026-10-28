@@ -83,3 +83,14 @@ footer {
 footer p {
     margin: 0;
 }
+
+/* Comment form */
+
+#comment-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#comment-form .error {
+    color: red;
+}

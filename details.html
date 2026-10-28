@@ -10,7 +10,7 @@
     <body>
         <main>
             <section id="artwork-details">
-            
+
                <img src="https://via.placeholder.com/400" alt="Artwork Image" width="400" height="400">
 
                <h1>
@@ -25,6 +25,35 @@
 
                <p>Tag1     Tag2     Tag3</p>
             </section>
+
+            <section id="comment-section">
+                <h2>Add a Comment </h2>
+                <form id = "comment-form">
+                    <label for = "comment">Your comment:</label>
+
+                    <textarea
+                        id = "comment"
+                        name = "comment"
+                        rows = "6"
+                        maxlength = "500"
+                        placeholder = "Write your comment here..."
+                    ></textarea>
+
+                    <p id = "comment-help" class = "helper"> Comment must be between 1 and 500 characters.</p>
+
+                    <p
+                        id = "comment-error"
+                        class = "error"
+                        role = "alert"
+                    ></p>
+
+                    <button type = "submit"> Submit Comment </button>
+
+                    <script src="script.js" defer></script>
+                    <script src="comment.js" defer></script>
+                </form>
+            </section>
+
         </main>
 
     </body>
