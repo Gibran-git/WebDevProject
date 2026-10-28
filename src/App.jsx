@@ -2,6 +2,7 @@ import { useState } from "react";
 import initialData from "./data/mockArtworks.json";
 import ArtworkGrid from "./components/ArtworkGrid";
 import ArtworkDetailModal from "./components/ArtworkDetailModal";
+import PersonalBoards from './components/PersonalBoards';
 
 export default function App() {
   const [artworks] = useState(initialData);
@@ -21,6 +22,7 @@ export default function App() {
     ? artworks
     : artworks.filter((item) => item.era === selectedEra);
 
+  const pinnedArtworks = artworks.filter((art) => savedIds.includes(art.id));
   return (
     <div className="app-shell">
       <header className="header">
@@ -49,11 +51,16 @@ export default function App() {
           onToggleSave={handleToggleSave}
         />
       </main>
-
+        <PersonalBoards
+          pinnedItems={pinnedArtworks}
+          onUnpin={handleToggleSave}
+        />
       <ArtworkDetailModal
         artwork={activeItem}
         onClose={() => setActiveItem(null)}
       />
     </div>
   );
+  
 }
+

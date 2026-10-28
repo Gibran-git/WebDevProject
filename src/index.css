@@ -227,3 +227,34 @@ img {
   cursor: pointer;
   line-height: 1;
 }
+
+/* pinterest masonry grid */
+.masonry-grid {
+  column-count: 3;
+  column-gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .masonry-grid {
+    column-count: 1;
+  }
+}
+
+.masonry-card {
+  break-inside: avoid;
+  margin-bottom: 1rem;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.masonry-details {
+  padding: 0.75rem;
+}
+
+.empty-board {
+  text-align: center;
+  color: #777;
+  margin: 2rem 0;
+}
