@@ -1,0 +1,32 @@
+[
+  {
+    "id": "aic-129884",
+    "title": "The Bedroom",
+    "artist": "Vincent van Gogh",
+    "date": "1889",
+    "era": "Post-Impressionism",
+    "medium": "Oil on canvas",
+    "imageUrl": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80",
+    "description": "Van Gogh's depiction of his bedroom in the Yellow House at Arles."
+  },
+  {
+    "id": "met-436535",
+    "title": "Wheat Field with Cypresses",
+    "artist": "Vincent van Gogh",
+    "date": "1889",
+    "era": "Post-Impressionism",
+    "medium": "Oil on canvas",
+    "imageUrl": "https://images.metmuseum.org/CRDImages/ep/original/DP130999.jpg",
+    "description": "Depicts golden fields of ripe wheat swirling alongside dark green cypresses."
+  },
+  {
+    "id": "cma-138600",
+    "title": "Water Lilies",
+    "artist": "Claude Monet",
+    "date": "1914–1926",
+    "era": "Impressionism",
+    "medium": "Oil on canvas",
+    "imageUrl": "https://images.metmuseum.org/CRDImages/ep/original/DP-25464-001.jpg",
+    "description": "Part of Monet's series of water lily murals painted at Giverny."
+  }
+]
