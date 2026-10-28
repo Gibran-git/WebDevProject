@@ -1,12 +1,26 @@
-// AI-assisted - see AI-USAGE.md #1.
+// AI-assisted foundation and integration - see AI-USAGE.md #1 and #2.
 import { useEffect, useRef, useState } from "react";
-import ArtworkCard from "./components/ArtworkCard.jsx";
+import ArtworkGrid from "./components/ArtworkGrid.jsx";
 import ArtworkDetail from "./components/ArtworkDetail.jsx";
 import { artworks } from "./data/artworks.js";
 
 export default function App() {
     const [selectedArtwork, setSelectedArtwork] = useState(null);
+    const [selectedMovement, setSelectedMovement] = useState("All");
+    const [savedIds, setSavedIds] = useState([]);
     const headingRef = useRef(null);
+    const movements = [...new Set(artworks.map((artwork) => artwork.movement))];
+    const filteredArtworks = selectedMovement === "All"
+        ? artworks
+        : artworks.filter((artwork) => artwork.movement === selectedMovement);
+
+    function handleToggleSave(id) {
+        setSavedIds((previousIds) => (
+            previousIds.includes(id)
+                ? previousIds.filter((savedId) => savedId !== id)
+                : [...previousIds, id]
+        ));
+    }
 
     useEffect(() => {
         headingRef.current?.focus();
@@ -20,7 +34,10 @@ export default function App() {
                     <button className="brand" type="button" onClick={() => setSelectedArtwork(null)}>
                         Exhibito<span aria-hidden="true">.</span>
                     </button>
-                    <span className="header-caption">Art & the people behind it</span>
+                    <div className="header-info">
+                        <span className="header-caption">Art & the people behind it</span>
+                        <span className="saved-count" role="status">Saved pieces: {savedIds.length}</span>
+                    </div>
                 </div>
             </header>
             <main id="main-content">
@@ -46,13 +63,29 @@ export default function App() {
                         <section aria-labelledby="artworks-heading">
                             <div className="section-heading">
                                 <h2 id="artworks-heading">Selected artworks</h2>
-                                <span className="muted">{artworks.length} works</span>
+                                <span className="muted" role="status">
+                                    {filteredArtworks.length} {filteredArtworks.length === 1 ? "work" : "works"}
+                                </span>
                             </div>
-                            <ul className="artwork-grid">
-                                {artworks.map((artwork) => (
-                                    <ArtworkCard key={artwork.id} artwork={artwork} onSelect={setSelectedArtwork} />
-                                ))}
-                            </ul>
+                            <div className="collection-filters">
+                                <label htmlFor="movement-filter">Filter by movement</label>
+                                <select
+                                    id="movement-filter"
+                                    value={selectedMovement}
+                                    onChange={(event) => setSelectedMovement(event.target.value)}
+                                >
+                                    <option value="All">All movements</option>
+                                    {movements.map((movement) => (
+                                        <option key={movement} value={movement}>{movement}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <ArtworkGrid
+                                artworks={filteredArtworks}
+                                onSelectArtwork={setSelectedArtwork}
+                                savedIds={savedIds}
+                                onToggleSave={handleToggleSave}
+                            />
                         </section>
                     </>
                 )}

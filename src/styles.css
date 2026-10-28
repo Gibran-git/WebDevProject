@@ -1,4 +1,4 @@
-/* AI-assisted - see AI-USAGE.md #1. */
+/* AI-assisted foundation and integration - see AI-USAGE.md #1 and #2. */
 :root {
     font-family: Arial, Helvetica, sans-serif;
     color: #292d28;
@@ -18,7 +18,7 @@ body {
     margin: 0;
 }
 
-button {
+button, select {
     font: inherit;
     cursor: pointer;
 }
@@ -32,7 +32,7 @@ a {
     text-underline-offset: 4px;
 }
 
-button:focus-visible, a:focus-visible, [tabindex="0"]:focus-visible {
+button:focus-visible, select:focus-visible, a:focus-visible, [tabindex="0"]:focus-visible {
     outline: 3px solid #8b4b24;
     outline-offset: 5px;
 }
@@ -110,6 +110,19 @@ h2 {
     font-size: 0.85rem;
 }
 
+.header-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+}
+
+.saved-count {
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
 main {
     min-height: calc(100vh - 190px);
     padding-top: 48px;
@@ -141,6 +154,29 @@ main {
     font-size: 0.85rem;
 }
 
+.collection-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.collection-filters label {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.collection-filters select {
+    max-width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: inherit;
+    background: #fff;
+    font-size: 0.85rem;
+}
+
 .artwork-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -166,6 +202,22 @@ main {
 
 .artwork-card:hover {
     border-color: var(--accent);
+}
+
+.artwork-open {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    width: 100%;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+}
+
+.artwork-open:focus-visible {
+    outline-offset: -4px;
 }
 
 .artwork-card img {
@@ -200,6 +252,34 @@ main {
     font-size: 0.85rem;
     font-weight: 700;
     color: var(--accent);
+}
+
+.card-actions {
+    padding: 0 23px 23px;
+}
+
+.save-button {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--accent);
+    font-size: 0.85rem;
+}
+
+.save-button:hover {
+    background: #eaf0e9;
+}
+
+.save-button[aria-pressed="true"] {
+    background: var(--accent);
+    color: #fff;
+}
+
+.empty-message {
+    color: var(--muted);
+    padding: 24px 0;
 }
 
 .text-button {
