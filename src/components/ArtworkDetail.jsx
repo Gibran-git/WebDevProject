@@ -1,6 +1,7 @@
 // AI-assisted - see AI-USAGE.md #1.
 import { useState } from "react";
 import ArtistBio from "./ArtistBio.jsx";
+import ArtworkImage from "./ArtworkImage.jsx";
 
 export default function ArtworkDetail({ artwork, onBack, headingRef }) {
     const [isZoomed, setIsZoomed] = useState(false);
@@ -20,7 +21,8 @@ export default function ArtworkDetail({ artwork, onBack, headingRef }) {
                             role="region"
                             aria-label="Artwork image; scroll to explore when enlarged"
                         >
-                            <img src={artwork.image} alt={artwork.imageAlt} />
+                            {/* this used to live in ArtworkDetailModal, which was deleted in #24 (also news to me) */}
+                            <ArtworkImage artwork={artwork} />
                         </div>
                     </div>
                     <button
@@ -33,7 +35,10 @@ export default function ArtworkDetail({ artwork, onBack, headingRef }) {
                         {isZoomed ? "Reset image" : "Enlarge image"}
                         <span aria-hidden="true"> {isZoomed ? "−" : "+"}</span>
                     </button>
-                    <figcaption>Art Institute of Chicago · {artwork.credit}</figcaption>
+                    {/* museum name was hardcoded to AIC; met records set `museum`, local data falls back to AIC */}
+                    <figcaption>
+                        {[artwork.museum ?? "Art Institute of Chicago", artwork.credit].filter(Boolean).join(" · ")}
+                    </figcaption>
                 </figure>
                 <div>
                     <p className="eyebrow">{artwork.movement}</p>
