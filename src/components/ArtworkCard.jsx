@@ -1,10 +1,13 @@
 // AI-assisted foundation and integration - see AI-USAGE.md #1 and #2.
+import ArtworkImage from "./ArtworkImage.jsx";
+
 export default function ArtworkCard({ artwork, onSelect, isSaved, onToggleSave }) {
     return (
         <li>
             <article className="artwork-card">
                 <button className="artwork-open" type="button" onClick={() => onSelect(artwork)}>
-                    <img src={artwork.image} alt={artwork.imageAlt} width="600" height="440" />
+                    {/* placeholder fallback for broken/missing api images */}
+                    <ArtworkImage artwork={artwork} width="600" height="440" loading="lazy" />
                     <span className="card-content">
                         <span className="eyebrow">{artwork.movement}</span>
                         <span className="card-title">{artwork.title}</span>
