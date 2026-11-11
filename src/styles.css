@@ -462,6 +462,149 @@ dd {
     top: 12px;
 }
 
+/* collection, search, and filter */
+.collection-controls {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.search-form label,
+.control label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.search-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.search-row input {
+    flex: 1 1 260px;
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 9px 12px;
+    color: inherit;
+    background: #fff;
+    font-size: 0.95rem;
+}
+
+.search-row input:focus-visible,
+.collection-filters select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.primary-button {
+    padding: 9px 18px;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.primary-button:hover {
+    background: #2a4236;
+}
+
+.collection-filters .control {
+    flex: 1 1 180px;
+}
+
+.collection-filters .control select {
+    width: 100%;
+}
+
+.status-notice--warning {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 16px;
+}
+
+.status-notice .text-button {
+    padding: 0;
+}
+
+/* loading placeholders */
+.artwork-skeleton {
+    display: grid;
+    gap: 12px;
+    padding-bottom: 23px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.skeleton-image,
+.skeleton-line {
+    display: block;
+    background: linear-gradient(90deg, #ecece6 25%, #f5f5f0 50%, #ecece6 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-image {
+    height: 235px;
+}
+
+.skeleton-line {
+    height: 14px;
+    margin: 0 23px;
+    border-radius: 3px;
+}
+
+.skeleton-line--short {
+    width: 45%;
+}
+ 
+/* animation! */
+@keyframes skeleton-shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-image,
+    .skeleton-line {
+        animation: none;
+    }
+}
+
+.empty-state {
+    padding: 32px 24px;
+    border: 1px dashed var(--border);
+    border-radius: 5px;
+    text-align: center;
+}
+
+.empty-state .empty-message {
+    padding: 0;
+    margin: 0 auto 16px;
+    max-width: 480px;
+}
+
+.empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+.empty-actions .save-button {
+    width: auto;
+}
+
 @media (max-width: 800px) {
     .artwork-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));

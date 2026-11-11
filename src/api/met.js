@@ -37,24 +37,31 @@ const PAINTINGS_DEPT = 11;
 const DEFAULT_QUERIES = ["Impressionism", "Baroque", "Renaissance"];
 const CONCURRENCY = 4;
 
-/*
-derive a grouping from the object's start date since the met doesn't give us a
-dedicated style/movement field (`period` is almost always blank for european paintings)
-
-NOTE: this used to feed `era`, which is what these buckets actually are (centuries,
-not art movements). it now has to feed `movement` because that's the only field
-left after `era` was removed without a heads up. so "19th Century" will show
-up under "Filter by movement". if we want both, bring back `era` alongside `movement`.
-and pls let's actually talk about it
-*/
+// derive an era from a start year (the met has no style/movement field for european paintings)
 export function eraFromYear(year) {
-  if (typeof year !== "number" || Number.isNaN(year)) return "Unknown";
-  if (year < 1400) return "Medieval"; // pre-Renaissance
-  if (year < 1600) return "Renaissance"; // 1400-1599
-  if (year < 1750) return "Baroque"; // 1600-1749
-  if (year < 1800) return "18th Century"; // 1750-1799
-  if (year < 1900) return "19th Century"; // 1800-1899
-  return "Modern"; // 1900+, contemporary
+    if (typeof year !== "number" || Number.isNaN(year)) return "Unknown";
+    if (year < 1400) return "Medieval"; // pre-Renaissance
+    if (year < 1600) return "Renaissance"; // 1400-1599
+    if (year < 1750) return "Baroque"; // 1600-1749
+    if (year < 1800) return "18th Century"; // 1750-1799
+    if (year < 1900) return "19th Century"; // 1800-1899
+    return "Modern"; // 1900+, contemporary
+}
+// how many ids to ask the search api for in total, more than `limit` since some objects fail or lack images
+const ID_POOL = 36;
+
+/*
+the met doesn't give us a dedicated style/movement field (`period` is almost always
+blank for european paintings), so:
+- `era` is derived from the object's start date (see src/utils/collection.js)
+- `movement` uses `period` when the met has one, otherwise the artist's national school
+  (e.g. "French painting"), which is how the met itself groups european paintings
+*/
+function movementOf(record) {
+  if (record.period) return record.period;
+  // nationality can be pipe-separated ("French|Dutch"), keep the first one
+  const nationality = record.artistNationality?.split("|")[0].trim();
+  return nationality ? `${nationality} painting` : "European painting";
 }
 
 // "1853" + "1890" -> "1853–1890", tolerate either side being missing
@@ -77,7 +84,9 @@ export function toArtwork(record) {
     date: record.objectDate || "Undated", // fallback if object date is not available
     medium: record.medium || "Unknown medium", // fallback if medium is not available
     dimensions: record.dimensions || "Dimensions unavailable",
-    movement: record.period || eraFromYear(record.objectBeginDate), // see the NOTE on eraFromYear
+    movement: movementOf(record), // determine the artistic movement or fallback to nationality-based description
+    year: typeof record.objectBeginDate === "number" ? record.objectBeginDate : null, // extract the year from the object begin date if available
+    era: eraFromYear(record.objectBeginDate), // backward-compatible era determination based on the object begin date
     image: record.primaryImageSmall,
     // the met doesn't provide alt text, so this is the best we can do without writing it by hand
     imageAlt: `${title} by ${name}`,
@@ -101,6 +110,22 @@ export function toArtwork(record) {
   };
 }
 
+/* AI-assisted - see AI-USAGE.md #3.
+  in-memory caches (live until the page reloads), so repeat 
+  work doesn't hit the met's rate limit again:
+  - searchCache: search query -> object ids. re-running a search or 
+    clearing it back to the presets is free
+  - objectCache: object id -> artwork (or null if it has no image). 
+    each artwork's details are fetched once, even if it shows up 
+    again in a different search
+  
+  only successful responses are cached. a 403 / network error is temporary, 
+  so that id is tried again next time. images don't need this: the browser's 
+  http cache already keeps them.
+ */
+const searchCache = new Map(); // search query -> object ids
+const objectCache = new Map(); // object id -> artwork (or null if it has no image)
+
 async function getJson(url, signal) {
   // fetch json from the given url, respecting abort signal
   const res = await fetch(url, { signal });
@@ -109,7 +134,10 @@ async function getJson(url, signal) {
 }
 
 async function searchIds(query, perQuery, signal) {
-  // search for object ids matching the query
+  // search for object ids matching the query (cached by query, case-insensitive)
+  // AI-assisted (cache lookup + store below) - see AI-USAGE.md #3
+  const cacheKey = `${query.toLowerCase()}|${perQuery}`; // cache key for search query and per-query limit
+  if (searchCache.has(cacheKey)) return searchCache.get(cacheKey); // return cached ids if available
   const params = new URLSearchParams({
     q: query,
     hasImages: "true",
@@ -117,11 +145,17 @@ async function searchIds(query, perQuery, signal) {
     limit: String(perQuery),
   });
   const json = await getJson(`${SEARCH_API}?${params}`, signal); // fetch search results
-  return json.objectIDs || [];
+  const ids = json.objectIDs || []; // extract object ids from the search results
+  searchCache.set(cacheKey, ids); // cache the ids for this query
+  return ids;
 }
 
-export async function fetchArtworks({ queries = DEFAULT_QUERIES, perQuery = 12, limit = 24, signal } = {}) {
-  // fetch artworks matching the given queries, respecting per-query and overall limits
+export async function fetchArtworks({ query = "", limit = 24, timeBudgetMs = Infinity, signal } = {}) {
+  const startedAt = Date.now();
+  // a user search replaces the preset queries; an empty search falls back to the presets for variety
+  const trimmed = query.trim(); // remove leading/trailing whitespace from the query
+  const queries = trimmed ? [trimmed] : DEFAULT_QUERIES; // use user query or fallback to default queries
+  const perQuery = Math.ceil(ID_POOL / queries.length); // number of ids to fetch per query
   const idLists = await Promise.all(queries.map((q) => searchIds(q, perQuery, signal))); // fetch lists of ids for each query
   const longest = Math.max(0, ...idLists.map((list) => list.length)); // find the length of the longest list of ids
   const interleaved = Array.from({ length: longest }, (_, i) => idLists.map((list) => list[i])).flat(); // interleave the lists so that each query contributes evenly
@@ -129,15 +163,29 @@ export async function fetchArtworks({ queries = DEFAULT_QUERIES, perQuery = 12, 
 
   // met has no fields= filter: each object is a separate/individual request, and bursts get rate-limited (403). fetch a few at a time and stop once we have enough
   const artworks = [];
-  for (let i = 0; i < ids.length && artworks.length < limit; i += CONCURRENCY) {
-    const batch = ids.slice(i, i + CONCURRENCY);
-    // fetch details for the current batch of ids
+  let i = 0;
+  while (i < ids.length && artworks.length < limit) {
+    // AI-assisted (objectCache reads/writes in this loop) - see AI-USAGE.md #3
+    // already-loaded artworks come straight from the cache, no request needed
+    if (objectCache.has(ids[i])) {
+      const cached = objectCache.get(ids[i++]);
+      if (cached) artworks.push(cached);
+      continue;
+    }
+    // when the met is throttling us, return what we already have instead of timing out with nothing
+    if (artworks.length > 0 && Date.now() - startedAt > timeBudgetMs) break;
+    // the next run of up to CONCURRENCY uncached ids, kept in order
+    const batch = [];
+    while (i < ids.length && batch.length < CONCURRENCY && !objectCache.has(ids[i])) batch.push(ids[i++]);
     const results = await Promise.allSettled(batch.map((id) => getJson(`${API}/objects/${id}`, signal)));
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-    for (const r of results) {
+    results.forEach((r, index) => {
       // one fail should not prevent other artworks from being added
-      if (r.status === "fulfilled" && r.value.primaryImageSmall) artworks.push(toArtwork(r.value));
-    }
+      if (r.status !== "fulfilled") return;
+      const artwork = r.value.primaryImageSmall ? toArtwork(r.value) : null;
+      objectCache.set(batch[index], artwork);
+      if (artwork) artworks.push(artwork);
+    });
   }
 
   if (artworks.length === 0 && ids.length > 0) {
