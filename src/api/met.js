@@ -1,6 +1,7 @@
 /*
-in dev, requests go thru the vite proxy (same origin, no CORS)
-production builds call the met directly, sends Access-Control-Allow-Origin: *
+The Met API allows cross-origin requests, so development and production both
+call it directly. This avoids sending localhost request state through a proxy,
+which the Met's edge protection can reject with a 403.
 
 keeping scope to european paintings only (for now) until we want to
 expand, because department is being explicitly passed to the search api.
@@ -25,7 +26,7 @@ the PR description next time folks
 /* TODO: still need to discuss future plans for 
 non-painting artworks e.g., sculptures, etc. */
 
-const MET_BASE = import.meta.env.DEV ? "/api/met" : "https://collectionapi.metmuseum.org";
+const MET_BASE = "https://collectionapi.metmuseum.org";
 const API = `${MET_BASE}/public/collection/v1`;
 const SEARCH_API = `${MET_BASE}/public/collection/v1.1/search`;
 
@@ -47,8 +48,10 @@ export function eraFromYear(year) {
     if (year < 1900) return "19th Century"; // 1800-1899
     return "Modern"; // 1900+, contemporary
 }
-// how many ids to ask the search api for in total, more than `limit` since some objects fail or lack images
-const ID_POOL = 36;
+// Search results can claim to have images even when their detail record has no
+// displayable image. Scan a page at a time and cap the work at three pages.
+const SEARCH_PAGE_SIZE = 100;
+const MAX_SEARCH_PAGES = 3;
 
 /*
 the met doesn't give us a dedicated style/movement field (`period` is almost always
@@ -133,16 +136,17 @@ async function getJson(url, signal) {
   return res.json();
 }
 
-async function searchIds(query, perQuery, signal) {
+async function searchIds(query, limit, offset, signal) {
   // search for object ids matching the query (cached by query, case-insensitive)
   // AI-assisted (cache lookup + store below) - see AI-USAGE.md #3
-  const cacheKey = `${query.toLowerCase()}|${perQuery}`; // cache key for search query and per-query limit
+  const cacheKey = `${query.toLowerCase()}|${limit}|${offset}`; // cache key for the requested result page
   if (searchCache.has(cacheKey)) return searchCache.get(cacheKey); // return cached ids if available
   const params = new URLSearchParams({
     q: query,
     hasImages: "true",
     departmentId: String(PAINTINGS_DEPT), // limited to those with images in the european paintings department
-    limit: String(perQuery),
+    limit: String(limit),
+    offset: String(offset),
   });
   const json = await getJson(`${SEARCH_API}?${params}`, signal); // fetch search results
   const ids = json.objectIDs || []; // extract object ids from the search results
@@ -155,16 +159,32 @@ export async function fetchArtworks({ query = "", limit = 24, timeBudgetMs = Inf
   // a user search replaces the preset queries; an empty search falls back to the presets for variety
   const trimmed = query.trim(); // remove leading/trailing whitespace from the query
   const queries = trimmed ? [trimmed] : DEFAULT_QUERIES; // use user query or fallback to default queries
-  const perQuery = Math.ceil(ID_POOL / queries.length); // number of ids to fetch per query
-  const idLists = await Promise.all(queries.map((q) => searchIds(q, perQuery, signal))); // fetch lists of ids for each query
-  const longest = Math.max(0, ...idLists.map((list) => list.length)); // find the length of the longest list of ids
-  const interleaved = Array.from({ length: longest }, (_, i) => idLists.map((list) => list[i])).flat(); // interleave the lists so that each query contributes evenly
-  const ids = [...new Set(interleaved.filter((id) => id !== undefined))];
+  const perQuery = Math.ceil(SEARCH_PAGE_SIZE / queries.length); // number of ids to fetch per query from each search page
+  async function candidateIds(page) {
+    const offset = page * perQuery;
+    const idLists = await Promise.all(queries.map((q) => searchIds(q, perQuery, offset, signal)));
+    const longest = Math.max(0, ...idLists.map((list) => list.length));
+    const interleaved = Array.from({ length: longest }, (_, index) => idLists.map((list) => list[index])).flat();
+    return [...new Set(interleaved.filter((id) => id !== undefined))];
+  }
+
+  let page = 0;
+  let ids = await candidateIds(page);
+  let hadCandidateIds = ids.length > 0;
 
   // met has no fields= filter: each object is a separate/individual request, and bursts get rate-limited (403). fetch a few at a time and stop once we have enough
   const artworks = [];
   let i = 0;
-  while (i < ids.length && artworks.length < limit) {
+  while (artworks.length < limit) {
+    if (i >= ids.length) {
+      if (page + 1 >= MAX_SEARCH_PAGES) break;
+      page += 1;
+      ids = await candidateIds(page);
+      hadCandidateIds ||= ids.length > 0;
+      if (ids.length === 0) break;
+      i = 0;
+      continue;
+    }
     // AI-assisted (objectCache reads/writes in this loop) - see AI-USAGE.md #3
     // already-loaded artworks come straight from the cache, no request needed
     if (objectCache.has(ids[i])) {
@@ -188,7 +208,7 @@ export async function fetchArtworks({ query = "", limit = 24, timeBudgetMs = Inf
     });
   }
 
-  if (artworks.length === 0 && ids.length > 0) {
+  if (artworks.length === 0 && hadCandidateIds) {
     // error handling: no artworks could be loaded despite having ids
     throw new Error("Could not load any artwork details from the Met.");
   }

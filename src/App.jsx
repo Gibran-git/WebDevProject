@@ -93,9 +93,9 @@ function sortArtworks(artworks, sortKey) {
     return compare ? [...artworks].sort(compare) : artworks;
 }
 
-const FETCH_TIMEOUT_MS = 8000; // give enough time for met api to respond, otherwise may be a legit timeout
+const FETCH_TIMEOUT_MS = 12000; // allow the loader to inspect a later search page when early records lack usable images
 // stop starting new detail batches after this long and show partial results (leaves room for in-flight requests)
-const FETCH_BUDGET_MS = 5500;
+const FETCH_BUDGET_MS = 8500;
 const LOCAL_ARTWORKS = localArtworks.map(withEra); // local data has no `era`/`year`, derive them once
 const SKELETON_COUNT = 6;
 

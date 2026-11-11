@@ -47,7 +47,7 @@ export default function CollectionControls({
                     <input
                         id="artwork-search"
                         type="search"
-                        placeholder="Try “Monet”, “still life” or “portrait”" // example search suggestions
+                        placeholder="Try “Cezanne”, “still life” or “portrait”" // example search suggestions
                         value={searchInput}
                         onChange={(event) => onSearchInputChange(event.target.value)} // call the provided handler when the input changes
                         maxLength={100}
