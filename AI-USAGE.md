@@ -26,3 +26,27 @@
   ```
 
 - **What it produced & what I changed:** It produced the component and everything I asked for in it incl. the search form, the era / category dropdowns, and the sort. I kept the logic as generated, read through it to confirm it holds no state and doesn't use an API, and added the comments. Tested and validated.
+
+
+### #5 -  Debugging Community Boards and Discussion posts
+- **Date:** 2026-11-20
+- **Member:** Brandon Dias
+- **Tool / model:** claude free model
+- **Files:** I gave it a zip of the project
+- **Prompt (verbatim):**
+
+  ```
+
+WebDevProject.zip
+ZIP
+This is the repo for my project im working on. I tried implementing a community board feature and a discussion thread for each piece of art but I am running into errors where it isnt showing, and clicking on an art piece just leaves the page blank. Can you help me debug the errors in my code to fix these issues so that I can view community boards users have made and the discussion threads under each artpiece details page?
+
+  ```
+
+
+- **What it produced & what I changed:** 
+
+It showed me that I forgot to add backLabel, threads, onAddThread, and onAddReply as paramaters to my ArtworkDetail function which is what was causing the blank page when I clicked on artwork. It also pointed out a couple variables and headers that I had mispelled or forgot to capitilize in multiple files (SiteHeader.jsx, communityBoards.jsx, AccountPage.jsx, DiscussionThreads.jsx, and App.jsx) such as <dive> instead of <div>, <spawn> instead of <span>, arialabelled instead of aria-labelled and spelling color as colour, all causing errors and some being why the header layout was broken. It also showed me that there was no commmunity board or account page button which I didnt realize I forgot to add, so I created those inside SiteHeader.jsx.
+
+
+

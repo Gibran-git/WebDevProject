@@ -21,6 +21,10 @@ import ArtworkDetail from "./components/ArtworkDetail.jsx";
 import { artworks as localArtworks } from "./data/artworks.js";
 import { fetchArtworks, eraFromYear } from "./api/met.js";
 import CollectionControls from "./components/CollectionControls.jsx";
+import SiteHeader from "./components/SiteHeader.jsx";
+import CommunityBoards from "./components/CommunityBoards.jsx";
+import AccountPage from "./components/AccountPage.jsx";
+import { starterThreads } from "./data/communityBoards.js";
 
 // search/filter/sort work on both met data and local fallback data
 
@@ -98,6 +102,7 @@ const FETCH_TIMEOUT_MS = 12000; // allow the loader to inspect a later search pa
 const FETCH_BUDGET_MS = 8500;
 const LOCAL_ARTWORKS = localArtworks.map(withEra); // local data has no `era`/`year`, derive them once
 const SKELETON_COUNT = 6;
+const BACK_LABELS = { collection: "collection", community: "community boards", account: "your account" };
 
 // keep the selected category if the new results still have it, otherwise go back to "All"
 const keepIfPresent = (list) => (previous) => (
@@ -111,7 +116,11 @@ export default function App() {
     const [error, setError] = useState(null);
     const [usingFallback, setUsingFallback] = useState(true);
     const [selectedArtwork, setSelectedArtwork] = useState(null);
-    const [savedIds, setSavedIds] = useState([]);
+    const [savedArtworks, setSavedArtworks] = useState([]);
+    const [view, setView] = useState("collection");
+    const [selectedBoard, setSelectedBoard] = useState(null);
+    const [threads, setThreads] = useState(starterThreads);
+    
     // search / filter / sort state
     const [searchInput, setSearchInput] = useState(""); // what's typed in the box (controlled input)
     const [activeQuery, setActiveQuery] = useState(""); // what was last submitted
@@ -120,7 +129,7 @@ export default function App() {
     const [selectedMovement, setSelectedMovement] = useState("All");
     const [sortKey, setSortKey] = useState("relevance");
     const headingRef = useRef(null);
-
+    const savedIds = savedArtworks.map((artwork) => artwork.id);
     const movements = [...new Set(artworks.map((artwork) => artwork.movement))].sort();
     // the met already searched for us; the offline data has to be searched locally
     const visibleArtworks = sortArtworks(
@@ -190,9 +199,15 @@ export default function App() {
         setLoading(true);
     }
 
+    function showView(nextView){
+        setSelectedArtwork(null);
+        setSelectedBoard(null);
+        setView(nextView);
+    }
+
     function handleSearchSubmit() {
         const query = searchInput.trim();
-        setSearchInput(query);
+        setView("collection");
         runSearch(query);
     }
 
@@ -206,41 +221,75 @@ export default function App() {
         setSelectedMovement("All");
     }
 
+    /* AI-assisted - see AI-USAGE.md #5 */
     function handleToggleSave(id) {
-        setSavedIds((previousIds) => (
-            previousIds.includes(id)
-                ? previousIds.filter((savedId) => savedId !== id)
-                : [...previousIds, id]
+        setSavedArtworks((previousArtworks) => (
+            previousArtworks.some((artwork) => artwork.id === id)
+                ? previousArtworks.filter((artwork) => artwork.id !== id)
+                : [...previousArtworks, [...artworks, ...LOCAL_ARTWORKS].find((artwork) => artwork.id === id)]
         ));
+    }
+
+    function handleAddThread(artworkId, title, text){
+        setThreads((previousThreads) => [
+            ...previousThreads,
+            { id: Date.now(), artworkId, author: "You", title, text, replies: [] },
+        ]);
+    }
+
+    function handleAddReply(threadId, text){
+        setThreads((previousThreads) => previousThreads.map((thread) => (
+            thread.id === threadId
+            ? { ...thread, replies: [...thread.replies, { id: Date.now(), author: "You", text}]}
+            : thread
+        )));
     }
 
     useEffect(() => {
         headingRef.current?.focus();
-    }, [selectedArtwork]);
+    }, [selectedArtwork, view, selectedBoard]);
 
     return (
         <>
             <a className="skip-link" href="#main-content">Skip to content</a>
-            <header className="site-header">
-                <div className="header-content">
-                    <button className="brand" type="button" onClick={() => setSelectedArtwork(null)}>
-                        Exhibito<span aria-hidden="true">.</span>
-                    </button>
-                    <div className="header-info">
-                        <span className="header-caption">Art & the people behind it</span>
-                        <span className="saved-count" role="status">Saved pieces: {savedIds.length}</span>
-                    </div>
-                </div>
-            </header>
+            <SiteHeader
+                searchInput = {searchInput}
+                onSearchInputChange = {setSearchInput}
+                onSearchSubmit = {handleSearchSubmit}
+                view = {view}
+                onShowView = {showView}
+                savedCount = {savedIds.length}
+            />
             <main id="main-content">
                 {selectedArtwork ? (
                     <ArtworkDetail
-                        key={selectedArtwork.id}
-                        artwork={selectedArtwork}
-                        onBack={() => setSelectedArtwork(null)}
+                        key = {selectedArtwork.id}
+                        artwork = {selectedArtwork}
+                        onBack = {() => setSelectedArtwork(null)}
+                        backLabel = {BACK_LABELS[view]}
+                        threads = {threads.filter((thread) => thread.artworkId === selectedArtwork.id)}
+                        onAddThread = {handleAddThread}
+                        onAddReply = {handleAddReply}
                         headingRef={headingRef}
                     />
-                ) : (
+                ) : view === "community" ? (
+                    <CommunityBoards
+                        selectedBoard = {selectedBoard}
+                        onSelectBoard = {setSelectedBoard}
+                        onSelectArtwork = {setSelectedArtwork}
+                        savedIds = {savedIds}
+                        onToggleSave = {handleToggleSave}
+                        headingRef = {headingRef}
+                    />
+                    ): view === "account" ? (
+                        <AccountPage
+                            savedArtworks = {savedArtworks}
+                            savedIds = {savedIds}
+                            onSelectArtwork = {setSelectedArtwork}
+                            onToggleSave = {handleToggleSave}
+                            headingRef = {headingRef}
+                            />
+                    ):(
                     <>
                         <section className="collection-intro" aria-labelledby="collection-heading">
                             <p className="eyebrow">The collection</p>
@@ -253,11 +302,6 @@ export default function App() {
                             </p>
                         </section>
                         <CollectionControls
-                            searchInput={searchInput}
-                            onSearchInputChange={setSearchInput}
-                            onSearchSubmit={handleSearchSubmit}
-                            onClearSearch={handleClearSearch}
-                            activeQuery={activeQuery}
                             era={selectedEra}
                             onEraChange={setSelectedEra}
                             movement={selectedMovement}
