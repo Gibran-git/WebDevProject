@@ -21,7 +21,7 @@ export default function ArtworkCard({ artwork, onSelect, isSaved, onToggleSave }
                         type="button"
                         aria-pressed={isSaved}
                         aria-label={`Save ${artwork.title}`}
-                        onClick={() => onToggleSave(artwork.id)}
+                        onClick={() => onToggleSave(artwork)}
                     >
                         <span aria-hidden="true">{isSaved ? "★" : "☆"} </span>
                         {isSaved ? "Saved" : "Save artwork"}

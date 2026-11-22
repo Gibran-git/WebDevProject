@@ -1,7 +1,8 @@
-import {useEffect, useId, useRef, useState} from "react";
+import {useContext, useEffect, useId, useRef, useState} from "react";
 import ArtworkGrid from "./ArtworkGrid.jsx";
 import ArtworkImage from "./ArtworkImage.jsx"
 import {BoardList} from "./CommunityBoards.jsx";
+import {OfflineImagesContext} from "../data/artworks.js";
 
 const MAX_TITLE = 100;
 const MAX_DESCRIPTION = 200;
@@ -13,6 +14,7 @@ function ArtworkPicker ({savedArtworks, selectedIds, onToggle, onSearch, onClose
     const [query, setQuery] = useState("");
     const [results, setResults] = useState([]);
     const [status, setStatus] = useState("idle");
+    const collectionOffline = useContext(OfflineImagesContext);
     const dialogRef = useRef(null);
     const controllerRef = useRef(null);
     const headingId = useId();
@@ -36,12 +38,10 @@ function ArtworkPicker ({savedArtworks, selectedIds, onToggle, onSearch, onClose
         controllerRef.current = controller;
         setStatus("loading");
         onSearch(trimmed, controller.signal)
-            .then((found) => {
-                setResults(found);
-                setStatus("done");
-            })
-            .catch((err) => {
-                if(err.name !== "AbortError") setStatus("error");
+            .then((response) => {
+                if (controller.signal.aborted) return;
+                setResults(response.results);
+                setStatus(response.error ? "offline" : "done");
             });
     }
 
@@ -79,11 +79,12 @@ function ArtworkPicker ({savedArtworks, selectedIds, onToggle, onSearch, onClose
             <div className = "picker-results">
                 <h3>{query ? `Results for “${query}”` : "Your saved art"}</h3>
                 {status === "loading" && <p className = "helper" role = "status">Searching…</p>}
-                {status === "error" && <p className = "error" role = "alert">Couldn't search right now, please try again in a moment</p>}
-                {status !== "loading" && status !== "error" && shown.length === 0 && (
+                {status === "offline" && <p className="helper" role="status">The Met search isn't available right now. Showing offline collection.</p>}
+                {status !== "loading" && shown.length === 0 && (
                     <p className = "helper">{query ? "No artworks found" : "You haven't saved any artwork yet, try searching above"}</p>
                 )}
-                {status !== "loading" && status !== "error" && shown.length > 0 && (
+                {status !== "loading" && shown.length > 0 && (
+                    <OfflineImagesContext.Provider value={query ? status === "offline" : collectionOffline}>
                     <div className = "picker-grid">
                         {shown.map((artwork) => (
                             <label className = {`picker-tile${selectedIds.includes(artwork.id) ? " is-selected" : ""}`} key = {artwork.id}>
@@ -94,6 +95,7 @@ function ArtworkPicker ({savedArtworks, selectedIds, onToggle, onSearch, onClose
                             </label>
                         ))}
                     </div>
+                    </OfflineImagesContext.Provider>
                 )}
             </div>
             <div className = "picker-footer">

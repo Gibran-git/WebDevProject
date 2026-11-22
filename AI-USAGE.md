@@ -100,3 +100,19 @@ I had around 15 typos total in the code I made for the features which is why whe
 - **What it produced & what I changed:** 
 
 My old code just overall looked very barebones and didnt fit the cleaner look of the rest of the website. So I gave up on trying to improve it and used what the AI suggested with very minimal edits, I just tweaked a couple things after the fact to get it to how I wanted it to look. The AI replaced my old BoardForm function with a new BoardForm for the new UI, it also replaced the board form css, and added a searchArtworks function in App.jsx and fixed handleToggleSave so that saving a searched piece from a board wont crash the page.
+
+
+### #9 - Remove references and download from Met
+- **Date:** 2026-11-22
+- **Member:** DJ Leamen
+- **Tool / model:** GitHub Copilot (free - student)
+- **Files:** `src/data/artworks.js, src/data/met-paintings.json, public/images/*`
+- **Prompt (verbatim):** 
+
+  ```
+  remove all references of chicago api in code and on the frontend. then download several images from met api and put them into public/images, replacing what's currently there.
+  our end goal will be to only display these images only when the Met API fails or times out.
+  don't touch src/components or Art.jsx. you can advise what next steps to take based on your own changes, but don't implement
+  ```
+
+- **What it produced & what I changed:** It used cURL and Playwright to download a bunch of images (12.4 MiB total) without triggering Met's limits. It then created src/data/met-paintings.json, which is useful to have, but it made artworks.js load the catalog instead of holding hand-written data, so it also rewrote artworks.js and included a new OfflineImagesContext using React createContext. I fixed met.js, created a new loadCollection in Art.jsx helper to replace the old fetch/timeout/fallback code and updated communityBoards.js starter threads so that the thread data only uses what we have available to us in case Met is unavailable, then did some googling to refresh myself again on the Context object and updated the now outdated offline image handling in src/components using this new OfflineImagesContext. I made sure ArtworkCard passed the whole artwork when saving, ArtworkDetail no longer hardcodes the Chicago museum name, and countPage's artwork piscker was updated for the new search result format and shows a new offline message. Also updated public/images/README.md

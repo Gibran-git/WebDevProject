@@ -7,7 +7,7 @@ export const communityBoards = [
         kind: "Saved pieces",
         title: "Brandon's saved pieces",
         description: "Love big scenes with alot going on",
-        artworkIds: [27992],
+        artworkIds: ["met-437750"],
     },
     {
         id: "laura-colour",
@@ -15,7 +15,7 @@ export const communityBoards = [
         kind: "Collection",
         title: "Colour studies",
         description: "Paintings with a lot of colours",
-        artworkIds: [16568, 28560, 27992],
+        artworkIds: ["met-436535", "met-437984", "met-435877"],
     },
     {
         id: "Paul-quiet",
@@ -23,26 +23,24 @@ export const communityBoards = [
         kind: "Collection",
         title: "Quiet spaces",
         description: "I find these pieces very calming, no one in a rush",
-        artworkIds: [28560, 16568],
+        artworkIds: ["met-435877", "met-436535"],
     },
 ];
 
 export const starterThreads = [
     {
-        id: 1,
-        artworkId: 28560,
+        id: "wheat-field-brushwork",
+        artworkId: "met-436535",
         author: "Laura",
-        title: "Why is the floor tilted like that?",
-        text: "It looks off in purpose. Did Van gough copy a real room for this?",
-        replies: [
-            {id: 2, author: "Brandon", text: "Ya, im pretty sure that was his actual room, he just flattened it on purpose"},
-        ],
+        title: "How does the artist show the wind?",
+        text: "The wheat and the clouds both seem to move.",
+        replies: [],
     },
     {
-        id: 2, 
-        artworkId: 16568,
+        id: "la-berceuse-colour",
+        artworkId: "met-437984",
         author: "Paul",
-        title: "How big is this pond?!",
+        title: "Which colors stand out in this portrait?",
         text: "",
         replies: [],
     },
@@ -58,7 +56,7 @@ export const starterThreads = [
     },
     {
         id: 4,
-        artoworkId: "met-435877",
+        artworkId: "met-435877",
         author: "Paul",
         title: "The tree in the foreground",
         text: "I like how Paul Cézanne used the depth perception of the trees in the foreground and bridge and mountains in the background",

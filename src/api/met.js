@@ -100,7 +100,7 @@ export function toArtwork(record) {
       : "No additional context is available for this work.",
     credit: record.creditLine || "",
     sourceUrl: record.objectURL || "https://www.metmuseum.org/art/collection",
-    museum: MET_MUSEUM_NAME, // the detail view used to hardcode "Art Institute of Chicago"
+    museum: MET_MUSEUM_NAME,
     artist: {
       name,
       lifespan: lifespanOf(record),
@@ -170,17 +170,16 @@ export async function fetchArtworks({ query = "", limit = 24, timeBudgetMs = Inf
 
   let page = 0;
   let ids = await candidateIds(page);
-  let hadCandidateIds = ids.length > 0;
+  let detailError;
 
   // met has no fields= filter: each object is a separate/individual request, and bursts get rate-limited (403). fetch a few at a time and stop once we have enough
   const artworks = [];
   let i = 0;
   while (artworks.length < limit) {
     if (i >= ids.length) {
-      if (page + 1 >= MAX_SEARCH_PAGES) break;
+      if (ids.length === 0 || page + 1 >= MAX_SEARCH_PAGES) break;
       page += 1;
       ids = await candidateIds(page);
-      hadCandidateIds ||= ids.length > 0;
       if (ids.length === 0) break;
       i = 0;
       continue;
@@ -201,16 +200,16 @@ export async function fetchArtworks({ query = "", limit = 24, timeBudgetMs = Inf
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     results.forEach((r, index) => {
       // one fail should not prevent other artworks from being added
-      if (r.status !== "fulfilled") return;
+      if (r.status !== "fulfilled") {
+        detailError = r.reason;
+        return;
+      }
       const artwork = r.value.primaryImageSmall ? toArtwork(r.value) : null;
       objectCache.set(batch[index], artwork);
       if (artwork) artworks.push(artwork);
     });
   }
 
-  if (artworks.length === 0 && hadCandidateIds) {
-    // error handling: no artworks could be loaded despite having ids
-    throw new Error("Could not load any artwork details from the Met.");
-  }
+  if (artworks.length === 0 && detailError) throw detailError;
   return artworks.slice(0, limit);
 }

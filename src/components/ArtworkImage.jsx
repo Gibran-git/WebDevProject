@@ -1,19 +1,18 @@
 /*
 helper component to display artwork images with a fallback
 placeholder if error occurs or image is missing
-
-updated for the new artwork shape: `imageUrl` -> `image`, and `title` -> `imageAlt`
-for alt text. yet another rename I got to discover on my own :thumbs_up:
-- DJ
 */
 
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { OfflineImagesContext, offlineImages } from "../data/artworks.js";
 
 // text placeholder instead of a broken-image icon
 export default function ArtworkImage({ artwork, className, ...imgProps }) {
-  const [failed, setFailed] = useState(false);
+  const offline = useContext(OfflineImagesContext);
+  const src = (offline && offlineImages.get(artwork.id)) || artwork.image;
+  const [failedSrc, setFailedSrc] = useState(null);
 
-  if (failed || !artwork.image) {
+  if (!src || src === failedSrc) {
     return (
       // show placeholder if image fails to load or is missing
       <div className={`image-placeholder ${className ?? ""}`.trim()} role="img" aria-label={artwork.imageAlt || artwork.title}>
@@ -26,10 +25,10 @@ export default function ArtworkImage({ artwork, className, ...imgProps }) {
     // imgProps passes through width/height/loading etc. so the card keeps its layout hints
     <img
       {...imgProps}
-      src={artwork.image}
+      src={src}
       alt={artwork.imageAlt || artwork.title}
       className={className}
-      onError={() => setFailed(true)}
+      onError={() => setFailedSrc(src)}
     />
   );
 }

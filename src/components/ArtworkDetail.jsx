@@ -36,9 +36,8 @@ export default function ArtworkDetail({ artwork, onBack, backLabel, threads, onA
                         {isZoomed ? "Reset image" : "Enlarge image"}
                         <span aria-hidden="true"> {isZoomed ? "−" : "+"}</span>
                     </button>
-                    {/* museum name was hardcoded to AIC; met records set `museum`, local data falls back to AIC */}
                     <figcaption>
-                        {[artwork.museum ?? "Art Institute of Chicago", artwork.credit].filter(Boolean).join(" · ")}
+                        {[artwork.museum, artwork.credit].filter(Boolean).join(" · ")}
                     </figcaption>
                 </figure>
                 <div>

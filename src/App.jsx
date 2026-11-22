@@ -1,25 +1,10 @@
 // AI-assisted foundation and integration - see AI-USAGE.md #1 and #2.
 
-/*
-important notes for local/dev testing (delete me):
-
-had to switch from aic api to met api due to cloudflare restrictions.
-www.artic.edu/iiif answered every image request i sent with a bot check or challenge
-and images were often blurred or inaccessible. not great for reliable image fetching
-
-switched to met, which has more reliable image access but rate-limits bursts of requests.
-bursts of requests get 403s and react dev mode doubles them on mount, so now we fetch
-artworks in small batches at a time.
-
-art details are fetched 4 at a time, stopping once there are 24 artworks with images
-
-- DJ
-*/
 import { useEffect, useRef, useState } from "react";
 import ArtworkGrid from "./components/ArtworkGrid.jsx";
 import ArtworkDetail from "./components/ArtworkDetail.jsx";
-import { artworks as localArtworks } from "./data/artworks.js";
-import { fetchArtworks, eraFromYear } from "./api/met.js";
+import { artworks as localArtworks, OfflineImagesContext } from "./data/artworks.js";
+import { fetchArtworks, eraFromYear, MET_MUSEUM_NAME } from "./api/met.js";
 import CollectionControls from "./components/CollectionControls.jsx";
 import SiteHeader from "./components/SiteHeader.jsx";
 import CommunityBoards from "./components/CommunityBoards.jsx";
@@ -62,12 +47,10 @@ function matchesQuery(artwork, query) {
     return terms.every((term) => haystack.includes(term));
 }
 
-function filterArtworks(artworks, { query = "", era = "All", movement = "All" } = {}) {
-    // filter artworks based on the selected era, movement, and search query
+function filterArtworks(artworks, { era = "All", movement = "All" } = {}) {
     return artworks.filter((artwork) => (
         (era === "All" || artwork.era === era)
         && (movement === "All" || artwork.movement === movement)
-        && matchesQuery(artwork, query)
     ));
 }
 
@@ -100,7 +83,6 @@ function sortArtworks(artworks, sortKey) {
 const FETCH_TIMEOUT_MS = 12000; // allow the loader to inspect a later search page when early records lack usable images
 // stop starting new detail batches after this long and show partial results (leaves room for in-flight requests)
 const FETCH_BUDGET_MS = 8500;
-const LOCAL_ARTWORKS = localArtworks.map(withEra); // local data has no `era`/`year`, derive them once
 const SKELETON_COUNT = 6;
 const BACK_LABELS = { collection: "collection", community: "community boards", account: "your account" };
 
@@ -109,22 +91,47 @@ const keepIfPresent = (list) => (previous) => (
     list.some((artwork) => artwork.movement === previous) ? previous : "All"
 );
 
+// loadCollection fetches artworks from the Met API 
+// with a timeout and fallback to local artworks
+async function loadCollection(query, limit, signal) {
+    // create a timeout signal to limit how long we wait for the Met API response
+    const timeout = AbortSignal.timeout(FETCH_TIMEOUT_MS);
+    try {
+        const results = await fetchArtworks({
+            // pass the query, limit, time budget, and combined signal to fetchArtworks
+            query, limit, timeBudgetMs: FETCH_BUDGET_MS, signal: AbortSignal.any([signal, timeout]),
+        });
+        return { results: results.map(withEra), error: null }; // successful fetch from Met API
+    } catch (err) {
+        if (signal.aborted) return null; // the request was aborted by the caller
+        return {
+            // fallback to local artworks if the Met API request fails
+            results: localArtworks.filter((artwork) => matchesQuery(artwork, query)).slice(0, limit),
+            error: timeout.aborted ? "The request timed out." : err.message || "Failed to load artworks.",
+        };
+    }
+}
+
+// isMetArtwork checks if an artwork ID follows the Met pattern (e.g., "met-12345") yay regex
+const isMetArtwork = (artwork) => /^met-\d+$/.test(artwork?.id);
+
 export default function App() {
-    // local data just in case the met api fails / is being slow
-    const [artworks, setArtworks] = useState(LOCAL_ARTWORKS);
+    const [artworks, setArtworks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [usingFallback, setUsingFallback] = useState(true);
+    const usingFallback = !loading && error !== null;
     const [selectedArtwork, setSelectedArtwork] = useState(null);
     // AI-assisted - see AI-USAGE.md #6
-    const [savedArtworks, setSavedArtworks] = useState(() => JSON.parse(localStorage.getItem("savedArtworks")) ?? []);
+    const [storedArtworks, setSavedArtworks] = useState(() => JSON.parse(localStorage.getItem("savedArtworks")) ?? []);
+    const savedArtworks = storedArtworks.filter(isMetArtwork);
     const [view, setView] = useState("collection");
     const [selectedBoard, setSelectedBoard] = useState(null);
     const [threads, setThreads] = useState(() => {
         const saved = JSON.parse(localStorage.getItem("threads")) ?? [];
         return [...saved, ...starterThreads.filter((starter) => !saved.some((thread) => thread.id === starter.id))];
     });
-    const [myBoards, setMyboards] = useState(() => JSON.parse(localStorage.getItem("myBoards")) ?? []);
+    const [storedBoards, setMyboards] = useState(() => JSON.parse(localStorage.getItem("myBoards")) ?? []);
+    const myBoards = storedBoards.map((board) => ({ ...board, artworks: (board.artworks ?? []).filter(isMetArtwork) }));
     const [boardForm, setBoardForm] = useState(null);
     
     // search / filter / sort state
@@ -137,68 +144,28 @@ export default function App() {
     const headingRef = useRef(null);
     const savedIds = savedArtworks.map((artwork) => artwork.id);
     const publicBoards = [... communityBoards, ...myBoards.filter((board) => board.isPublic)]
-    const localMatches = LOCAL_ARTWORKS.filter((artwork) => matchesQuery(artwork, activeQuery));
-    const allArtworks = usingFallback ? artworks : [...localMatches, ...artworks];
     const movements = [...new Set(artworks.map((artwork) => artwork.movement))].sort();
-    // the met already searched for us; the offline data has to be searched locally
     const visibleArtworks = sortArtworks(
-        filterArtworks(allArtworks, {
-            query: usingFallback ? activeQuery : "",
+        filterArtworks(artworks, {
             era: selectedEra,
             movement: selectedMovement,
         }),
         sortKey,
     );
     const filtersActive = selectedEra !== "All" || selectedMovement !== "All";
-    const sourceName = usingFallback ? "the Art Institute of Chicago" : "The Metropolitan Museum of Art";
-
     useEffect(() => {
-        // fetch artworks with timeout and cancellation handling
-        const controller = new AbortController(); // used to cancel the fetch request if it times out or the component unmounts
-        let timedOut = false;
-        let cancelled = false;
-        const timeoutId = setTimeout(() => { timedOut = true; controller.abort(); }, FETCH_TIMEOUT_MS); // abort the fetch if it takes longer than the timeout
-
-        function showFallback(message) {
-            // show the fallback artworks and update the UI state accordingly
-            setArtworks(LOCAL_ARTWORKS);
-            setUsingFallback(true);
-            setSelectedMovement(keepIfPresent(LOCAL_ARTWORKS));
-            setError(message);
-        }
-
-        fetchArtworks({ query: activeQuery, timeBudgetMs: FETCH_BUDGET_MS, signal: controller.signal }) // pass the abort signal to the fetch request for cancellation handling
-            .then((data) => {
-                if (cancelled) return;
-                if (data.length === 0 && !activeQuery) {
-                    // the preset queries should always find something, so this is an api problem
-                    showFallback("The API returned no artworks.");
-                    return;
-                }
-                // success response. an empty list for a user search is a valid "no results", not an error
-                const results = data.map(withEra);
+        // effect to load artworks whenever the active query or request ID changes
+        const controller = new AbortController();
+        loadCollection(activeQuery, undefined, controller.signal) // fetch artworks from the Met API
+            .then((response) => {
+                if (controller.signal.aborted) return; // request was aborted, do not update state
+                const { results, error } = response; // destructure the response from the Met API
                 setArtworks(results);
-                setSelectedMovement(keepIfPresent([...LOCAL_ARTWORKS, ...results])); // local categories won't exist in the met data
-                setUsingFallback(false);
-                setError(null);
-            })
-            .catch((err) => {
-                // handle fetch errors (network issues, API errors, or aborts)
-                if (cancelled) return;
-                showFallback(timedOut ? "The request timed out." : err.message || "Failed to load artworks.");
-            })
-            // finalize fetch process by clearing the timeout and updating the loading state
-            .finally(() => {
-                clearTimeout(timeoutId);
-                if (!cancelled) setLoading(false); // update the loading state only if the fetch was NOT cancelled
+                setSelectedMovement(keepIfPresent(results));
+                setError(error);
+                setLoading(false);
             });
-
-        return () => {
-            // cleanup function
-            cancelled = true;
-            clearTimeout(timeoutId); // clear the timeout to prevent it from firing after unmount
-            controller.abort(); // abort the fetch request if the component unmounts or a new search starts
-        };
+        return () => controller.abort(); // cleanup function to abort the request if the component unmounts or dependencies change
     }, [activeQuery, requestId]);
 
     function runSearch(query) {
@@ -209,10 +176,9 @@ export default function App() {
     }
 
     // AI-assisted - see AI-USAGE.md #8
+    // then edited by DJ for new loadCollection usage with limit parameter
     function searchArtworks(query, signal) {
-        const local = LOCAL_ARTWORKS.filter((artwork) => matchesQuery(artwork, query));
-        return fetchArtworks({ query, limit: 12, timeBudgetMs: FETCH_BUDGET_MS, signal })
-            .then((results) => [...new Map([...local, ...results.map(withEra)].map((artwork) => [artwork.id, artwork])).values()]);
+        return loadCollection(query, 12, signal);
     }
 
     function showView(nextView){
@@ -245,12 +211,12 @@ export default function App() {
     }
 
     /* AI-assisted - see AI-USAGE.md #5 */
-    function handleToggleSave(id) {
+    // then edited by DJ again for consistency with other handlers
+    function handleToggleSave(artwork) {
         setSavedArtworks((previousArtworks) => (
-            previousArtworks.some((artwork) => artwork.id === id)
-                ? previousArtworks.filter((artwork) => artwork.id !== id)
-                // AI-assisted - see AI-USAGE.md #8
-                : [...previousArtworks, [...artworks, ...LOCAL_ARTWORKS, ...myBoards.flatmap((board) => board.artworks)].find((artwork) => artwork.id === id)]
+            previousArtworks.some((item) => item?.id === artwork.id)
+                ? previousArtworks.filter((item) => item?.id !== artwork.id)
+                : [...previousArtworks, artwork]
         ));
     }
 
@@ -317,23 +283,23 @@ export default function App() {
 
     // AI-assisted - see AI-USAGE.md #6
     useEffect(() => {
-        localStorage.setItem("savedArtworks", JSON.stringify(savedArtworks));
-    }, [savedArtworks]);
+        localStorage.setItem("savedArtworks", JSON.stringify(storedArtworks));
+    }, [storedArtworks]);
 
     useEffect(() => {
         localStorage.setItem("threads", JSON.stringify(threads));
     }, [threads]);
 
     useEffect(() => {
-        localStorage.setItem("myBoards", JSON.stringify(myBoards));
-    }, [myBoards]);
+        localStorage.setItem("myBoards", JSON.stringify(storedBoards));
+    }, [storedBoards]);
 
     useEffect(() => {
         headingRef.current?.focus();
     }, [selectedArtwork, view, selectedBoard]);
 
     return (
-        <>
+        <OfflineImagesContext.Provider value={usingFallback}>
             <a className="skip-link" href="#main-content">Skip to content</a>
             <SiteHeader
                 searchInput = {searchInput}
@@ -398,7 +364,7 @@ export default function App() {
                                 Every artwork has a story.
                             </h1>
                             <p>
-                                Explore a few favorites from {sourceName}.
+                                Explore a few favorites from {MET_MUSEUM_NAME}.
                                 Open a work to meet its artist and discover its story.
                             </p>
                         </section>
@@ -418,7 +384,7 @@ export default function App() {
                             <div className="status-notice status-notice--warning" role="alert">
                                 <span>
                                     Couldn't load artworks from The Metropolitan Museum of Art
-                                    {error ? ` (${error})` : ""}. Showing offline sample data
+                                    {error ? ` (${error})` : ""}. Showing downloaded Met artworks
                                     {activeQuery ? `, searched for “${activeQuery}”` : ""} instead.
                                 </span>
                                 <button className="text-button" type="button" onClick={() => runSearch(activeQuery)}>
@@ -452,8 +418,8 @@ export default function App() {
                                 // empty state: say why nothing matched and how to get results back
                                 <div className="empty-state">
                                     <p className="empty-message">
-                                        {allArtworks.length === 0
-                                            ? `The Met has no European paintings with images matching “${activeQuery}”. Try a different spelling or a broader term.`
+                                        {artworks.length === 0 && !usingFallback
+                                            ? `The Met returned no European paintings with images${activeQuery ? ` matching “${activeQuery}”` : ""}. Try a different search.`
                                             : "No artworks match your search and filters."}
                                     </p>
                                     <div className="empty-actions">
@@ -483,8 +449,8 @@ export default function App() {
             </main>
             <footer className="site-footer">
                 <span>Exhibito · A little closer to art.</span>
-                <span>Public-domain artworks · {usingFallback ? "Art Institute of Chicago" : "The Metropolitan Museum of Art"}</span>
+                <span>Public-domain artworks · {MET_MUSEUM_NAME}</span>
             </footer>
-        </>
+        </OfflineImagesContext.Provider>
     );
 }
