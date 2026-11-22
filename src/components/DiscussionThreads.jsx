@@ -1,4 +1,5 @@
 import {useId, useState} from "react";
+import OptionsMenu from "./OptionsMenu.jsx";
 
 const MAX_TITLE = 100;
 const MAX_TEXT = 500;
@@ -34,7 +35,106 @@ function ReplyForm({ threadId, onAddReply }) {
     );
 }
 
-export default function DiscussionThreads({artworkId, threads, onAddThread, onAddReply }){
+function EditForm({ initialTitle, initialText, onSave, onCancel }){
+    const [title, setTitle] = useState(initialTitle ?? "");
+    const [text, setText] = useState(initialText);
+    const [error, setError] = useState("");
+    const editId = useId();
+    const hasTitle = initialTitle !== undefined;
+
+    function handleSubmit(event){
+        // AI-assisted - see AI-USAGE.md #7
+        event.preventDefault();
+        if((hasTitle && title.trim().length < 1) || text.trim().length < 1){
+            setError(hasTitle ? "Please enter a title and message" : "Please enter a reply");
+            return;
+        }
+        onSave(title.trim(), text.trim());
+    }
+    return (
+        <form className = "thread-form" onSubmit = {handleSubmit}>
+            {hasTitle && (
+                <>
+                    <label htmlFor = {`${editId}-title`}>Title</label>
+                    <input
+                        id = {`${editId}-title`}
+                        type = "text"
+                        maxLength = {MAX_TITLE}
+                        value = {title}
+                        onChange = {(event) => {setTitle(event.target.value); setError("");}}
+                    />
+                </>
+            )}
+            <label htmlFor = {`${editId}-text`}>{hasTitle ? "Message" : "Reply"} </label>
+            <textarea
+                id = {`${editId}-text`}
+                rows = {hasTitle ? "4" : "2"}
+                maxLength = {MAX_TEXT}
+                value = {text}
+                onChange = {(event) => {setText(event.target.value); setError("");}}
+            />
+            <p className = "error" role = "alert">{error}</p>
+            <div className = "form-actions">
+                <button className = "primary-button" type = "submit">Save</button>
+                <button className = "text-button" type = "button" onClick = {onCancel}>Cancel</button>
+            </div>
+        </form>
+    );
+}
+
+function Thread ({thread, onAddReply, onEditThread, onDeleteThread, onEditReply, onDeleteReply}){
+    const [editing, setEditing] = useState(false);
+    const [editingReplyId, setEditingReplyId] = useState(null);
+// AI-assisted - see AI-USAGE.md #7
+    return (
+        <article className = "thread">
+            {editing ? (
+                <EditForm
+                    initialTitle = {thread.title}
+                    initialText = {thread.text}
+                    onSave = {(title, text)=> {onEditThread(thread.id, title, text); setEditing(false);}}
+                    onCancel = {() => setEditing(false)}
+                />
+            ):(
+                <>
+                <div className = "post-header">
+                    <h3>{thread.title}</h3>
+                    {thread.author === "You" && (
+                        <OptionsMenu name = "thread" onEdit = {() => setEditing(true)} onDelete = {() => onDeleteThread(thread.id)} />
+                    )}
+                </div>
+                <p className = "muted">Started by {thread.author}</p>
+                <p>{thread.text}</p>
+                </>
+            )}
+            {thread.replies.length > 0 && (
+                <ul className = "reply-list">
+                    {thread.replies.map((reply) => (
+                        <li key = {reply.id}>
+                            {editingReplyId === reply.id ? (
+                                <EditForm
+                                    initialText = {reply.text}
+                                    onSave = {(title, text) => {onEditReply(thread.id, reply.id, text); setEditingReplyId(null);}}
+                                    onCancel = {() => setEditingReplyId(null)}
+                                />
+                            ):(
+                                <div className = "post-header">
+                                    <span><strong>{reply.author}</strong> : {reply.text}</span>
+                                    {reply.author === "You" && (
+                                        <OptionsMenu name = "reply" onEdit = {() => setEditingReplyId(reply.id)} onDelete = {() => onDeleteReply(thread.id, reply.id)} />
+                                    )}
+                                </div>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            )}
+            <ReplyForm threadId = {thread.id} onAddReply = {onAddReply} />
+        </article>
+    );
+}
+
+export default function DiscussionThreads({artworkId, threads, onAddThread, onAddReply, onEditThread, onDeleteThread, onEditReply, onDeleteReply }){
     const [title, setTitle] = useState("");
     const [text, setText] = useState("");
     const [error, setError] = useState("");
@@ -61,21 +161,14 @@ export default function DiscussionThreads({artworkId, threads, onAddThread, onAd
                 <ul className = "thread-list">
                     {threads.map((thread) => (
                         <li key = {thread.id}>
-                            <article className = "thread">
-                                <h3>{thread.title}</h3>
-                                <p className = "muted"> Started by {thread.author} </p>
-                                <p>{thread.text}</p>
-                                {thread.replies.length > 0 && (
-                                    <ul className = "reply-list">
-                                        {thread.replies.map((reply) => (
-                                            <li key={reply.id}>
-                                                <strong>{reply.author}</strong>: {reply.text}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                                <ReplyForm threadId = {thread.id} onAddReply = {onAddReply} />
-                            </article>
+                            <Thread
+                                thread = {thread}
+                                onAddReply = {onAddReply}
+                                onEditThread = {onEditThread}
+                                onDeleteThread = {onDeleteThread}
+                                onEditReply = {onEditReply}
+                                onDeleteReply = {onDeleteReply}
+                            />
                         </li>
                     ))}
                 </ul>

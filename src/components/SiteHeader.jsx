@@ -1,4 +1,4 @@
-export default function SiteHeader({ searchInput, onSearchInputChange, onSearchSubmit, view, onShowView, savedCount }){
+export default function SiteHeader({ searchInput, onSearchInputChange, onSearchSubmit, view, onShowView, onLogoClick}){
     function handleSubmit(event){
         event.preventDefault();
         onSearchSubmit();
@@ -7,7 +7,7 @@ export default function SiteHeader({ searchInput, onSearchInputChange, onSearchS
     return (
         <header className = "site-header">
             <div className = "header-content">
-                <button className = "brand" type = "button" onClick = {() => onShowView("collection")}>
+                <button className = "brand" type = "button" onClick = {onLogoClick}>
                     Exhibito <span aria-hidden = "true">.</span>
                 </button>
                 <nav className = "header-nav" aria-label = "Main">
@@ -33,16 +33,16 @@ export default function SiteHeader({ searchInput, onSearchInputChange, onSearchS
                         Community boards
                     </button>
                     <button
-                        className = "nav-button"
+                        className = "account-button"
                         type = "button"
-                        aria-current = {view === "community" ? "page" : undefined}
+                        aria-label = "Your account"
+                        aria-current = {view === "account" ? "page" : undefined}
                         onClick = {() => onShowView("account")}
                     >
-                        <svg width = "24" height = "24" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.8" aria-hidden = "true"> 
+                        <svg width = "24" height = "24" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" strokeWidth = "1.8" aria-hidden = "true">
                             <circle cx = "12" cy = "8" r = "4" />
                             <path d = "M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
                         </svg>
-                        <span className = "saved-count" role = "status">{savedCount} saved</span>
                     </button>
                 </nav>
             </div>

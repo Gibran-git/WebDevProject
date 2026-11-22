@@ -4,7 +4,7 @@ import ArtistBio from "./ArtistBio.jsx";
 import ArtworkImage from "./ArtworkImage.jsx";
 import DiscussionThreads from "./DiscussionThreads.jsx";
 
-export default function ArtworkDetail({ artwork, onBack, backLabel, threads, onAddThread, onAddReply, headingRef }) {
+export default function ArtworkDetail({ artwork, onBack, backLabel, threads, onAddThread, onAddReply, onEditThread, onDeleteThread, onEditReply, onDeleteReply, headingRef }) {
     const [isZoomed, setIsZoomed] = useState(false);
 
     return (
@@ -65,6 +65,10 @@ export default function ArtworkDetail({ artwork, onBack, backLabel, threads, onA
                 threads = {threads}
                 onAddThread = {onAddThread}
                 onAddReply = {onAddReply}
+                onEditThread = {onEditThread}
+                onDeleteThread = {onDeleteThread}
+                onEditReply = {onEditReply}
+                onDeleteReply = {onDeleteReply}
             />
         </>
     );

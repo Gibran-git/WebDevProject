@@ -1,23 +1,62 @@
 import ArtworkGrid from "./ArtworkGrid.jsx";
 import {artworks} from "../data/artworks.js";
-import {communityBoards} from "../data/communityBoards.js";
+import ArtworkImage from "./ArtworkImage.jsx";
+import OptionsMenu from "./OptionsMenu.jsx";
 
-export default function CommunityBoards({ selectedBoard, onSelectBoard, onSelectArtwork, savedIds, onToggleSave, headingRef}){
+// AI-assisted - see AI-USAGE.md #7
+const getArtworks = (board) => board.artworks ?? artworks.filter((artwork) => board.artworkIds.includes(artwork.id));
+
+const getCover = (board) => {
+    const boardArtworks = getArtworks(board);
+    return boardArtworks.find((artwork) => artwork.id === board.coverId) ?? boardArtworks[0];
+};
+
+export function BoardList({boards, onSelectBoard, onEditBoard, onDeleteBoard}){
+    return (
+        <ul className = "artwork-grid">
+            {boards.map((board) => (
+                <li className = "board-item" key = {board.id}>
+                    <button className = "artwork-card" type = "button" onClick = {() => onSelectBoard(board)}>
+                        {getCover(board) && <ArtworkImage artwork = {getCover(board)} />}
+                        <span className = "card-content">
+                            <span className = "eyebrow"> {board.kind}{board.isPublic === false ? " · Private" : ""} </span>
+                            <span className = "card-title"> {board.title} </span>
+                            <span className = "card-artist">
+                                by {board.owner} · {getArtworks(board).length} {getArtworks(board).length === 1 ? "art piece" : "art pieces"}
+                            </span>
+                            {board.description && <span className = "card-description">{board.description}</span>}
+                            <span className = "card-link"> View board <span aria-hidden = "true"> → </span></span>
+                        </span>
+                    </button>
+                    {board.owner === "You" && (
+                        <OptionsMenu name = "board" onEdit = {() => onEditBoard(board)} onDelete = {() => onDeleteBoard(board.id)} />
+                    )}
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+export default function CommunityBoards({ boards, selectedBoard, onSelectBoard, onSelectArtwork, savedIds, onToggleSave, onEditBoard, onDeleteBoard, backLabel, headingRef}){
     if(selectedBoard) {
-        const boardArtworks = artworks.filter((artwork) => selectedBoard.artworkIds.includes(artwork.id));
         return (
             <>
                 <button className = "text-button back-button" type = "button" onClick = {() => onSelectBoard(null)}>
-                    <span aria-hidden = "true"> ← </span> Back to community boards
+                    <span aria-hidden = "true"> ← </span> Back to {backLabel}
                 </button>
                 {/* AI-assisted - see AI-USAGE.md #5 */}
                 <section className = "collection-intro" aria-labelledby= "board-heading">
-                    <p className = "eyebrow">{selectedBoard.kind} · {selectedBoard.owner}</p>
-                    <h1 id = "board-heading" ref = {headingRef} tabIndex = "-1"> {selectedBoard.title}</h1>
-                    <p>{selectedBoard.description}</p>
+                    <p className = "eyebrow"> {selectedBoard.kind} {selectedBoard.isPublic === false ? " · Private" : ""} · {selectedBoard.owner} </p>
+                    <div className = "post-header">
+                        <h1 id = "board-heading" ref = {headingRef} tabIndex = "-1"> {selectedBoard.title}</h1>
+                        {selectedBoard.owner === "You" && (
+                            <OptionsMenu name = "board" onEdit = {() => onEditBoard(selectedBoard)} onDelete = {() => onDeleteBoard(selectedBoard.id)} />
+                        )}
+                    </div>
+                    {selectedBoard.description && <p>{selectedBoard.description} </p> }
                 </section>
                 <ArtworkGrid
-                    artworks = {boardArtworks}
+                    artworks = {getArtworks(selectedBoard)}
                     onSelectArtwork = {onSelectArtwork}
                     savedIds = {savedIds}
                     onToggleSave = {onToggleSave}
@@ -36,22 +75,12 @@ export default function CommunityBoards({ selectedBoard, onSelectBoard, onSelect
                     Browse the pieces and collections of other members, start a discussion under any artwork
                 </p>
             </section>
-            <ul className = "artwork-grid">
-                {communityBoards.map((board) => (
-                    <li key = {board.id}>
-                        <button className = "artwork-card" type = "button" onClick = {() => onSelectBoard(board)}>
-                            <span className = "card-content">
-                                <span className = "eyebrow"> {board.kind}</span>
-                                <span className = "card-title"> {board.title}</span>
-                                <span className = "card-artist">
-                                    by {board.owner} · {board.artworkIds.length} {board.artworkIds.length === 1 ? "work" : "works"}
-                                </span>
-                                <span className = "card-link"> View board <span aria-hidden = "true"> → </span></span>
-                            </span>
-                        </button>
-                    </li>
-                ))}
-            </ul>
+            <BoardList
+                boards = {boards}
+                onSelectBoard = {onSelectBoard}
+                onEditBoard = {onEditBoard}
+                onDeleteBoard = {onDeleteBoard}
+            />
         </>
     );
 }
