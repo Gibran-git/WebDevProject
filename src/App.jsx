@@ -21,6 +21,10 @@ import ArtworkDetail from "./components/ArtworkDetail.jsx";
 import { artworks as localArtworks } from "./data/artworks.js";
 import { fetchArtworks, eraFromYear } from "./api/met.js";
 import CollectionControls from "./components/CollectionControls.jsx";
+import SiteHeader from "./components/SiteHeader.jsx";
+import CommunityBoards from "./components/CommunityBoards.jsx";
+import AccountPage from "./components/AccountPage.jsx";
+import {communityBoards, starterThreads } from "./data/communityBoards.js";
 
 // search/filter/sort work on both met data and local fallback data
 
@@ -98,6 +102,7 @@ const FETCH_TIMEOUT_MS = 12000; // allow the loader to inspect a later search pa
 const FETCH_BUDGET_MS = 8500;
 const LOCAL_ARTWORKS = localArtworks.map(withEra); // local data has no `era`/`year`, derive them once
 const SKELETON_COUNT = 6;
+const BACK_LABELS = { collection: "collection", community: "community boards", account: "your account" };
 
 // keep the selected category if the new results still have it, otherwise go back to "All"
 const keepIfPresent = (list) => (previous) => (
@@ -111,7 +116,17 @@ export default function App() {
     const [error, setError] = useState(null);
     const [usingFallback, setUsingFallback] = useState(true);
     const [selectedArtwork, setSelectedArtwork] = useState(null);
-    const [savedIds, setSavedIds] = useState([]);
+    // AI-assisted - see AI-USAGE.md #6
+    const [savedArtworks, setSavedArtworks] = useState(() => JSON.parse(localStorage.getItem("savedArtworks")) ?? []);
+    const [view, setView] = useState("collection");
+    const [selectedBoard, setSelectedBoard] = useState(null);
+    const [threads, setThreads] = useState(() => {
+        const saved = JSON.parse(localStorage.getItem("threads")) ?? [];
+        return [...saved, ...starterThreads.filter((starter) => !saved.some((thread) => thread.id === starter.id))];
+    });
+    const [myBoards, setMyboards] = useState(() => JSON.parse(localStorage.getItem("myBoards")) ?? []);
+    const [boardForm, setBoardForm] = useState(null);
+    
     // search / filter / sort state
     const [searchInput, setSearchInput] = useState(""); // what's typed in the box (controlled input)
     const [activeQuery, setActiveQuery] = useState(""); // what was last submitted
@@ -120,11 +135,14 @@ export default function App() {
     const [selectedMovement, setSelectedMovement] = useState("All");
     const [sortKey, setSortKey] = useState("relevance");
     const headingRef = useRef(null);
-
+    const savedIds = savedArtworks.map((artwork) => artwork.id);
+    const publicBoards = [... communityBoards, ...myBoards.filter((board) => board.isPublic)]
+    const localMatches = LOCAL_ARTWORKS.filter((artwork) => matchesQuery(artwork, activeQuery));
+    const allArtworks = usingFallback ? artworks : [...localMatches, ...artworks];
     const movements = [...new Set(artworks.map((artwork) => artwork.movement))].sort();
     // the met already searched for us; the offline data has to be searched locally
     const visibleArtworks = sortArtworks(
-        filterArtworks(artworks, {
+        filterArtworks(allArtworks, {
             query: usingFallback ? activeQuery : "",
             era: selectedEra,
             movement: selectedMovement,
@@ -160,7 +178,7 @@ export default function App() {
                 // success response. an empty list for a user search is a valid "no results", not an error
                 const results = data.map(withEra);
                 setArtworks(results);
-                setSelectedMovement(keepIfPresent(results)); // local categories won't exist in the met data
+                setSelectedMovement(keepIfPresent([...LOCAL_ARTWORKS, ...results])); // local categories won't exist in the met data
                 setUsingFallback(false);
                 setError(null);
             })
@@ -190,9 +208,29 @@ export default function App() {
         setLoading(true);
     }
 
+    // AI-assisted - see AI-USAGE.md #8
+    function searchArtworks(query, signal) {
+        const local = LOCAL_ARTWORKS.filter((artwork) => matchesQuery(artwork, query));
+        return fetchArtworks({ query, limit: 12, timeBudgetMs: FETCH_BUDGET_MS, signal })
+            .then((results) => [...new Map([...local, ...results.map(withEra)].map((artwork) => [artwork.id, artwork])).values()]);
+    }
+
+    function showView(nextView){
+        setSelectedArtwork(null);
+        setSelectedBoard(null);
+        setBoardForm(null);
+        setView(nextView);
+    }
+
+    function handleLogoClick(){
+        showView("collection");
+        setSearchInput("");
+        if(activeQuery) runSearch("");
+    }
+
     function handleSearchSubmit() {
         const query = searchInput.trim();
-        setSearchInput(query);
+        setView("collection");
         runSearch(query);
     }
 
@@ -206,41 +244,153 @@ export default function App() {
         setSelectedMovement("All");
     }
 
+    /* AI-assisted - see AI-USAGE.md #5 */
     function handleToggleSave(id) {
-        setSavedIds((previousIds) => (
-            previousIds.includes(id)
-                ? previousIds.filter((savedId) => savedId !== id)
-                : [...previousIds, id]
+        setSavedArtworks((previousArtworks) => (
+            previousArtworks.some((artwork) => artwork.id === id)
+                ? previousArtworks.filter((artwork) => artwork.id !== id)
+                // AI-assisted - see AI-USAGE.md #8
+                : [...previousArtworks, [...artworks, ...LOCAL_ARTWORKS, ...myBoards.flatmap((board) => board.artworks)].find((artwork) => artwork.id === id)]
         ));
     }
 
+    function handleAddThread(artworkId, title, text){
+        setThreads((previousThreads) => [
+            ...previousThreads,
+            { id: Date.now(), artworkId, author: "You", title, text, replies: [] },
+        ]);
+    }
+
+    function handleAddReply(threadId, text){
+        setThreads((previousThreads) => previousThreads.map((thread) => (
+            thread.id === threadId
+            ? { ...thread, replies: [...thread.replies, { id: Date.now(), author: "You", text}]}
+            : thread
+        )));
+    }
+
+    function handleEditThread(threadId, title, text) {
+        setThreads((previousThreads) => previousThreads.map((thread) => 
+            (thread.id === threadId ? {...thread, title, text} : thread)
+        ));
+    }
+
+    function handleDeleteThread(threadId){
+        setThreads((previousThreads) => previousThreads.filter((thread) => thread.id !== threadId));
+    }
+
+    function handleEditReply(threadId, replyId, text) {
+        setThreads((previousThreads) => previousThreads.map((thread) => (
+            thread.id === threadId
+            ? {...thread, replies: thread.replies.map((reply) => reply.id === replyId ? {...reply, text } : reply) }
+            : thread
+        )));
+    }
+
+    function handleDeleteReply(threadId, replyId){
+        setThreads((previousThreads) => previousThreads.map((thread) => (
+            thread.id === threadId
+            ? {...thread, replies: thread.replies.filter((reply) => reply.id !== replyId)}
+            : thread
+        )));
+    }
+// AI-assisted - see AI-USAGE.md #7
+    function handleEditBoard(target) {
+        showView("account");
+        setBoardForm(target);
+    }
+
+    function handleSaveBoard(board){
+        setMyboards((previousBoards) => (
+            board.id
+            // AI-assisted - see AI-USAGE.md #7
+            ? previousBoards.map((existing) => existing.id === board.id ? board : existing)
+            : [...previousBoards, {...board, id: Date.now() }]
+        ));
+        setBoardForm(null);
+    }
+
+    function handleDeleteBoard(id){
+        setMyboards((previousBoards) => previousBoards.filter((board) => board.id !== id));
+        if (selectedBoard?.id === id) setSelectedBoard(null);
+    }
+
+    // AI-assisted - see AI-USAGE.md #6
+    useEffect(() => {
+        localStorage.setItem("savedArtworks", JSON.stringify(savedArtworks));
+    }, [savedArtworks]);
+
+    useEffect(() => {
+        localStorage.setItem("threads", JSON.stringify(threads));
+    }, [threads]);
+
+    useEffect(() => {
+        localStorage.setItem("myBoards", JSON.stringify(myBoards));
+    }, [myBoards]);
+
     useEffect(() => {
         headingRef.current?.focus();
-    }, [selectedArtwork]);
+    }, [selectedArtwork, view, selectedBoard]);
 
     return (
         <>
             <a className="skip-link" href="#main-content">Skip to content</a>
-            <header className="site-header">
-                <div className="header-content">
-                    <button className="brand" type="button" onClick={() => setSelectedArtwork(null)}>
-                        Exhibito<span aria-hidden="true">.</span>
-                    </button>
-                    <div className="header-info">
-                        <span className="header-caption">Art & the people behind it</span>
-                        <span className="saved-count" role="status">Saved pieces: {savedIds.length}</span>
-                    </div>
-                </div>
-            </header>
+            <SiteHeader
+                searchInput = {searchInput}
+                onSearchInputChange = {setSearchInput}
+                onSearchSubmit = {handleSearchSubmit}
+                view = {view}
+                onShowView = {showView}
+                onLogoClick = {handleLogoClick}
+            />
             <main id="main-content">
                 {selectedArtwork ? (
+                    // AI-assisted - see AI-USAGE.md #7
                     <ArtworkDetail
-                        key={selectedArtwork.id}
-                        artwork={selectedArtwork}
-                        onBack={() => setSelectedArtwork(null)}
+                        key = {selectedArtwork.id}
+                        artwork = {selectedArtwork}
+                        onBack = {() => setSelectedArtwork(null)}
+                        backLabel = {BACK_LABELS[view]}
+                        threads = {threads.filter((thread) => thread.artworkId === selectedArtwork.id)}
+                        onAddThread = {handleAddThread}
+                        onAddReply = {handleAddReply}
+                        onEditThread = {handleEditThread}
+                        onDeleteThread = {handleDeleteThread}
+                        onEditReply = {handleEditReply}
+                        onDeleteReply = {handleDeleteReply}
                         headingRef={headingRef}
                     />
-                ) : (
+                ) : view === "community" || selectedBoard ? (
+                    <CommunityBoards
+                        boards = {publicBoards}
+                        selectedBoard = {selectedBoard}
+                        onSelectBoard = {setSelectedBoard}
+                        onSelectArtwork = {setSelectedArtwork}
+                        savedIds = {savedIds}
+                        onToggleSave = {handleToggleSave}
+                        onEditBoard = {handleEditBoard}
+                        onDeleteBoard = {handleDeleteBoard}
+                        backLabel = {BACK_LABELS[view]}
+                        headingRef = {headingRef}
+                    />
+                    ): view === "account" ? (
+                        // AI-assisted - see AI-USAGE.md #7
+                        <AccountPage
+                            savedArtworks = {savedArtworks}
+                            savedIds = {savedIds}
+                            myBoards = {myBoards}
+                            onSelectBoard = {setSelectedBoard}
+                            boardForm = {boardForm}
+                            onEditBoard = {handleEditBoard}
+                            onSaveBoard = {handleSaveBoard}
+                            onDeleteBoard = {handleDeleteBoard}
+                            onSelectArtwork = {setSelectedArtwork}
+                            onToggleSave = {handleToggleSave}
+                            // AI-assisted - see AI-USAGE.md #8
+                            onSearchArtworks = {searchArtworks}
+                            headingRef = {headingRef}
+                            />
+                    ):(
                     <>
                         <section className="collection-intro" aria-labelledby="collection-heading">
                             <p className="eyebrow">The collection</p>
@@ -253,11 +403,6 @@ export default function App() {
                             </p>
                         </section>
                         <CollectionControls
-                            searchInput={searchInput}
-                            onSearchInputChange={setSearchInput}
-                            onSearchSubmit={handleSearchSubmit}
-                            onClearSearch={handleClearSearch}
-                            activeQuery={activeQuery}
                             era={selectedEra}
                             onEraChange={setSelectedEra}
                             movement={selectedMovement}
@@ -307,7 +452,7 @@ export default function App() {
                                 // empty state: say why nothing matched and how to get results back
                                 <div className="empty-state">
                                     <p className="empty-message">
-                                        {artworks.length === 0
+                                        {allArtworks.length === 0
                                             ? `The Met has no European paintings with images matching “${activeQuery}”. Try a different spelling or a broader term.`
                                             : "No artworks match your search and filters."}
                                     </p>

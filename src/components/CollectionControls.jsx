@@ -20,11 +20,6 @@ const SORT_OPTIONS = [
 
 // all eras and categories are included in the filters
 export default function CollectionControls({
-    searchInput,
-    onSearchInputChange,
-    onSearchSubmit,
-    onClearSearch,
-    activeQuery,
     era,
     onEraChange,
     movement,
@@ -33,35 +28,8 @@ export default function CollectionControls({
     sortKey,
     onSortChange,
 }) {
-    function handleSubmit(event) {
-        event.preventDefault(); // prevent default form submission
-        onSearchSubmit();
-    }
-
     return (
         <div className="collection-controls">
-            <form className="search-form" role="search" onSubmit={handleSubmit}>
-                {/* search input and buttons */}
-                <label htmlFor="artwork-search">Search artworks</label>
-                <div className="search-row">
-                    <input
-                        id="artwork-search"
-                        type="search"
-                        placeholder="Try “Cezanne”, “still life” or “portrait”" // example search suggestions
-                        value={searchInput}
-                        onChange={(event) => onSearchInputChange(event.target.value)} // call the provided handler when the input changes
-                        maxLength={100}
-                        autoComplete="off" // browsers like to suggest previous searches
-                    />
-                    <button className="primary-button" type="submit">Search</button>
-                    {activeQuery && (
-                        <button className="text-button" type="button" onClick={onClearSearch}>
-                            Clear search
-                        </button>
-                    )}
-                    {/* additional controls could go here if needed */}
-                </div>
-            </form>
             <div className="collection-filters">
                 {/* collection filters section */}
                 <div className="control">

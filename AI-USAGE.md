@@ -26,3 +26,77 @@
   ```
 
 - **What it produced & what I changed:** It produced the component and everything I asked for in it incl. the search form, the era / category dropdowns, and the sort. I kept the logic as generated, read through it to confirm it holds no state and doesn't use an API, and added the comments. Tested and validated.
+
+
+### #5 -  Debugging Community Boards and Discussion posts
+- **Date:** 2026-11-20
+- **Member:** Brandon Dias
+- **Tool / model:** claude free model
+- **Files:** src/components/SiteHeader.jsx, src/components/communityBoards.jsx, src/components/AccountPage.jsx, src/components/DiscussionThreads.jsx, and src/App.jsx
+- **Prompt (verbatim):**
+
+  ```
+
+  WebDevProject.zip
+  ZIP
+  This is the repo for my project im working on. I tried implementing a community board feature and a discussion thread for each piece of art but I am running into errors where it isnt showing, and clicking on an art piece just leaves the page blank. Can you help me debug the errors in my code to fix these issues so that I can view community boards users have made and the discussion threads under each artpiece details page?
+
+  ```
+
+
+- **What it produced & what I changed:** 
+
+It showed me that I forgot to add backLabel, threads, onAddThread, and onAddReply as paramaters to my ArtworkDetail function which is what was causing the blank page when I clicked on artwork. It also pointed out a couple variables and headers that I had mispelled or forgot to capitilize in multiple files (SiteHeader.jsx, communityBoards.jsx, AccountPage.jsx, DiscussionThreads.jsx, and App.jsx) such as <dive> instead of <div>, <spawn> instead of <span>, arialabelled instead of aria-labelled and spelling color as colour, all causing errors and some being why the header layout was broken. It also showed me that there was no commmunity board or account page button which I didnt realize I forgot to add, so I created those inside SiteHeader.jsx.
+
+
+### #6 - Local Storage implementation
+- **Date:** 2026-11-21
+- **Member:** Brandon Dias
+- **Tool / model:** Claude free model
+- **Files:** src/App.jsx
+- **Prompt (verbatim):**
+
+  ```
+  How would I go about preventing discussion posts, and saved art pieces from resetting when I refresh the page?
+  
+  ```
+
+- **What it produced & what I changed:** 
+
+It told me to store everything in the browser's localStorage so I had to change a couple lines to grab and send savedArtwork or thread to and from the browser's localStorage so it doesnt get reset when refreshing the page. I also had to add to useEffects() so that whenever you add or remove a saved art piece or thread it will automatically save or delete the savedArtwork or thread data from the browser localStorage
+
+
+### #7 - Debugging Adding Community Boards and editing posts
+- **Date:** 2026-11-22
+- **Member:** Brandon Dias
+- **Tool / model:** claude free model
+- **Files:** `src/components/OptionsMenu.jsx, src/components/CommunityBoards.jsx, src/styles.css, src/components/DiscussionThreads.jsx, src/App.jsx, src/components/AccountPage.jsx
+- **Prompt (verbatim):**
+
+  ```
+  WebDevProject.zip
+  ZIP
+  This is the updated repo. I cleaned up the UI by removing the extra search bar, and the saved art count at the top. I then tried adding a button to allow you to create your own community board from pieces you have saved. I also tried to add a feature where you can edit or delete your discussion threads, community board and/or replies. The issue is that whatever I did causes the website to load the main page fine but goes blank whenever I try using any of these features. Can you explain to me what I need to do to fix the bugs in my code?
+
+  ```
+
+- **What it produced & what I changed:** 
+
+I had around 15 typos total in the code I made for the features which is why whenever I tried to switch off the main page to use one of the features the website would just go blank. The AI showed me each spelling mistake and once I fixed those the website worked as intended. It also gave me a suggestion to add a preventDefault in the DiscussionThreads handlesubmit file so that the page doesnt refresh whenever you save your edit.
+
+
+### #8 - Improve Edit Board UI
+- **Date:** 2026-11-22
+- **Member:** Brandon Dias
+- **Tool / model:** claude free model
+- **Files:** `src/components/AccountPage.jsx, src/App.jsx, src/styles.css
+- **Prompt (verbatim):**
+
+  ```
+  The UI I made for when you create/edit your board looks awful. Can you help me with doing a full overhaul of the UI for this page? What I want for the page is you should have a place to put the title, a place to put the description, maybe like a little switch icon thing that switches left, showing private and right, showing public, for the visibility of the board if possible. If its not possible you can just leave that how I had it. Then I want it so you can click a button titled "Add artwork to Board" and then a pop-up page appears showing you your saved art, but you can also search and select art you don't have saved. Then the ones you select appear in a row with their name similar to how I have it now. and finally you can select which to use for the cover art where only one should be able to be selected at a time. I will attach my current repo folder so you understand what im working with right now.
+
+  ```
+
+- **What it produced & what I changed:** 
+
+My old code just overall looked very barebones and didnt fit the cleaner look of the rest of the website. So I gave up on trying to improve it and used what the AI suggested with very minimal edits, I just tweaked a couple things after the fact to get it to how I wanted it to look. The AI replaced my old BoardForm function with a new BoardForm for the new UI, it also replaced the board form css, and added a searchArtworks function in App.jsx and fixed handleToggleSave so that saving a searched piece from a board wont crash the page.

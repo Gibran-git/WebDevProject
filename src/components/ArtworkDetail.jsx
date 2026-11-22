@@ -2,14 +2,15 @@
 import { useState } from "react";
 import ArtistBio from "./ArtistBio.jsx";
 import ArtworkImage from "./ArtworkImage.jsx";
+import DiscussionThreads from "./DiscussionThreads.jsx";
 
-export default function ArtworkDetail({ artwork, onBack, headingRef }) {
+export default function ArtworkDetail({ artwork, onBack, backLabel, threads, onAddThread, onAddReply, onEditThread, onDeleteThread, onEditReply, onDeleteReply, headingRef }) {
     const [isZoomed, setIsZoomed] = useState(false);
 
     return (
         <>
             <button className="text-button back-button" type="button" onClick={onBack}>
-                <span aria-hidden="true">← </span>Back to collection
+                <span aria-hidden="true">← </span>Back to {backLabel}
             </button>
             <div className="detail-layout">
                 <figure className="artwork-figure">
@@ -59,6 +60,16 @@ export default function ArtworkDetail({ artwork, onBack, headingRef }) {
                     </a>
                 </div>
             </div>
+            <DiscussionThreads
+                artworkId = {artwork.id}
+                threads = {threads}
+                onAddThread = {onAddThread}
+                onAddReply = {onAddReply}
+                onEditThread = {onEditThread}
+                onDeleteThread = {onDeleteThread}
+                onEditReply = {onEditReply}
+                onDeleteReply = {onDeleteReply}
+            />
         </>
     );
 }
