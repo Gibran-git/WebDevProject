@@ -18,16 +18,22 @@ const SORT_OPTIONS = [
     { value: "date-desc", label: "Date (newest first)" },
 ];
 
-// all eras and categories are included in the filters
+// filters only list the eras and categories on the current page of results.
+// the collection is paged (the met rate-limits us), so filtering and sorting
+// only see the loaded page; paginated shows a note saying so
 export default function CollectionControls({
     era,
     onEraChange,
+    eras,
     movement,
     onMovementChange,
     movements,
     sortKey,
     onSortChange,
+    paginated = false,
 }) {
+    // chronological order, limited to eras on this page; keep the current choice listed so the select never goes blank
+    const eraOptions = ERAS.filter((value) => eras.has(value) || value === era);
     return (
         <div className="collection-controls">
             <div className="collection-filters">
@@ -37,7 +43,7 @@ export default function CollectionControls({
                     {/* era filter dropdown */}
                     <select id="era-filter" value={era} onChange={(event) => onEraChange(event.target.value)}>
                         <option value="All">All eras</option>
-                        {ERAS.map((value) => <option key={value} value={value}>{value}</option>)}
+                        {eraOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                     </select>
                 </div>
                 <div className="control">
@@ -61,6 +67,11 @@ export default function CollectionControls({
                         ))}
                     </select>
                 </div>
+                {paginated && (
+                    <p className="collection-note muted">
+                        Filtering and sorting apply to the works on this page.
+                    </p>
+                )}
             </div>
         </div>
     );

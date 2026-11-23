@@ -566,6 +566,12 @@ dd {
     width: 100%;
 }
 
+.collection-note {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: 0.85rem;
+}
+
 .status-notice--warning {
     display: flex;
     flex-wrap: wrap;
@@ -646,6 +652,32 @@ dd {
 
 .empty-actions .save-button {
     width: auto;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 32px;
+}
+
+.pagination .save-button {
+    width: auto;
+    min-width: 110px;
+}
+
+.pagination .save-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.pagination .save-button:disabled:hover {
+    background: #fff;
+}
+
+#artworks-heading:focus {
+    outline: none;
 }
 
 .discussion {
