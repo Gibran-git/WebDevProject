@@ -1,3 +1,4 @@
+import { Link, useLocation } from "react-router";
 import ArtworkGrid from "./ArtworkGrid.jsx";
 import {artworks} from "../data/artworks.js";
 import ArtworkImage from "./ArtworkImage.jsx";
@@ -11,12 +12,13 @@ const getCover = (board) => {
     return boardArtworks.find((artwork) => artwork.id === board.coverId) ?? boardArtworks[0];
 };
 
-export function BoardList({boards, onSelectBoard, onEditBoard, onDeleteBoard}){
+export function BoardList({boards, onEditBoard, onDeleteBoard}){
+    const location = useLocation();
     return (
         <ul className = "artwork-grid">
             {boards.map((board) => (
                 <li className = "board-item" key = {board.id}>
-                    <button className = "artwork-card" type = "button" onClick = {() => onSelectBoard(board)}>
+                    <Link className = "artwork-card" to={`/boards/${board.id}`} state={{ from: location.pathname }}>
                         {getCover(board) && <ArtworkImage artwork = {getCover(board)} />}
                         <span className = "card-content">
                             <span className = "eyebrow"> {board.kind}{board.isPublic === false ? " · Private" : ""} </span>
@@ -27,7 +29,7 @@ export function BoardList({boards, onSelectBoard, onEditBoard, onDeleteBoard}){
                             {board.description && <span className = "card-description">{board.description}</span>}
                             <span className = "card-link"> View board <span aria-hidden = "true"> → </span></span>
                         </span>
-                    </button>
+                    </Link>
                     {board.owner === "You" && (
                         <OptionsMenu name = "board" onEdit = {() => onEditBoard(board)} onDelete = {() => onDeleteBoard(board.id)} />
                     )}
@@ -37,7 +39,7 @@ export function BoardList({boards, onSelectBoard, onEditBoard, onDeleteBoard}){
     );
 }
 
-export default function CommunityBoards({ boards, selectedBoard, onSelectBoard, onSelectArtwork, savedIds, onToggleSave, onEditBoard, onDeleteBoard, backLabel, headingRef}){
+export default function CommunityBoards({ boards, selectedBoard, onSelectBoard, savedIds, onToggleSave, onEditBoard, onDeleteBoard, backLabel, headingRef}){
     if(selectedBoard) {
         return (
             <>
@@ -57,7 +59,6 @@ export default function CommunityBoards({ boards, selectedBoard, onSelectBoard, 
                 </section>
                 <ArtworkGrid
                     artworks = {getArtworks(selectedBoard)}
-                    onSelectArtwork = {onSelectArtwork}
                     savedIds = {savedIds}
                     onToggleSave = {onToggleSave}
                 />
@@ -77,7 +78,6 @@ export default function CommunityBoards({ boards, selectedBoard, onSelectBoard, 
             </section>
             <BoardList
                 boards = {boards}
-                onSelectBoard = {onSelectBoard}
                 onEditBoard = {onEditBoard}
                 onDeleteBoard = {onDeleteBoard}
             />

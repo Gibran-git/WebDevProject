@@ -1,11 +1,16 @@
+import { useContext } from "react";
+import { Link, useLocation } from "react-router";
+import { OfflineImagesContext } from "../data/artworks.js";
 // AI-assisted foundation and integration - see AI-USAGE.md #1 and #2.
 import ArtworkImage from "./ArtworkImage.jsx";
 
-export default function ArtworkCard({ artwork, onSelect, isSaved, onToggleSave }) {
+export default function ArtworkCard({ artwork, isSaved, onToggleSave }) {
+    const location = useLocation();
+    const offline = useContext(OfflineImagesContext);
     return (
         <li>
             <article className="artwork-card">
-                <button className="artwork-open" type="button" onClick={() => onSelect(artwork)}>
+                <Link className="artwork-open" to={`/${artwork.id}`} state={{ from: location.pathname, originState: location.state, offline }}>
                     {/* placeholder fallback for broken/missing api images */}
                     <ArtworkImage artwork={artwork} width="600" height="440" loading="lazy" />
                     <span className="card-content">
@@ -14,7 +19,7 @@ export default function ArtworkCard({ artwork, onSelect, isSaved, onToggleSave }
                         <span className="card-artist">{artwork.artist.name}</span>
                         <span className="card-link">Explore artwork <span aria-hidden="true">→</span></span>
                     </span>
-                </button>
+                </Link>
                 <div className="card-actions">
                     <button
                         className="save-button"

@@ -1,73 +1,58 @@
 # Exhibito - CSCI 3230U Group Project
 
-## React foundation: catalog, artwork details & artist bios
+## React application
 
-This local demo combines the catalog/grid foundation from PR #23 with Sanhith's
-artwork detail and bio slice. It uses Vite, React, and three local artwork records,
-with movement filtering and in-memory save toggles. Search, persistent personal
-boards, and React community features remain separate work.
+Exhibito uses React and Vite to browse Met artworks, save pieces, manage personal
+boards, and discuss individual artworks. The Met adapter supplies consistent
+`met-<objectID>` artwork IDs. Live requests go directly to the Met; downloaded
+Met records and images provide a fallback during outages.
 
 ### Run locally
 
-Use Node.js 20.19+ or 22.12+ (supported LTS releases).
+Use Node.js 20.19+ or 22.12+, then run `npm install` and `npm run dev`.
+Open the local URL printed by Vite. `npm run build` builds the app and
+`npm run preview` serves that production build locally.
 
-```bash
-npm install
-npm run dev
-```
+### Navigation
 
-Open the Local URL printed by Vite. To check the production build, run
-`npm run build`; `npm run preview` serves that build locally. Run `npm run lint`
-to check the JavaScript and React code with ESLint.
+| URL | Page |
+| --- | --- |
+| `/` | Collection |
+| `/met-436535` | Artwork detail (replace the ID with another Met artwork ID) |
+| `/community` | Community boards |
+| `/account` | Saved artworks and personal boards |
+| `/boards/laura-colour` | Board detail (replace with a board ID) |
 
-### Quick demo
+Artwork and board cards are links: they support new tabs, direct visits, reloads,
+and browser Back/Forward. Artwork pages fetch their own record when it is not
+already loaded. Invalid URLs and unavailable records show a recovery link;
+temporary detail failures offer a retry or a matching downloaded artwork.
 
-1. Save an artwork and point out the **Saved pieces** count.
-2. Filter by each movement, then choose **All movements**. Hidden saved artworks
-   still contribute to the saved count.
-3. Open an artwork and point out its title, artist, medium, and dimensions.
-4. Click **Read full bio**, then **Read less** to demonstrate React state.
-5. Show the cultural context and **Enlarge image** / **Reset image** controls.
-6. Go back: the filter and saved items are preserved. Unsave an artwork and show
-   the count decrease. Open another work to show its artist's biography.
+Search, filters, and sorting stay in memory while navigating and reset on reload.
+Saved pieces, personal boards, and discussions persist in localStorage. A personal
+board URL works only in a browser containing that board's data; it does not sync
+boards between devices. Board editing stays on the account page, and leaving the
+page discards unsaved edits.
 
-### Component structure
+### Validation and hosting
 
-```text
-App                         selection, movement filter, and saved IDs state
-├── ArtworkGrid             filtered records, callbacks, and saved IDs props
-│   └── ArtworkCard         artwork, onSelect, isSaved, onToggleSave props
-└── ArtworkDetail           artwork + onBack props; image enlargement state
-    └── ArtistBio           artist prop; expanded/collapsed biography state
-```
+Run `npm test` for routing and API tests, `npm run lint` for ESLint, and
+`npm run build` for the production build. Tests mock Met requests so they do not
+rely on network availability.
 
-`src/data/artworks.js` supplies the local records. Images are bundled in
-`public/images/`, so the core demo requires no live API or internet connection
-after installation. Changing views uses component state for this milestone;
-URL routing, live data/loading/error handling, and further biography research
-are future work. Save state lasts only while the app is open; refreshing resets
-the filter and saved items. The museum record links require internet.
+Production hosting must serve `index.html` for application routes such as
+`/met-436535` and `/boards/laura-colour`, while serving existing assets normally.
+Configure an SPA fallback/rewrite on the chosen host; otherwise direct visits
+and refreshes can return a server 404. No production host is configured here.
 
-### Integration notes for the PR
-
-This branch integrates [PR #23](https://github.com/Gibran-git/WebDevProject/pull/23)
-and preserves its four original commits. The missing `ArtworkDetailModal` import
-is replaced with the existing artwork detail view. The catalog uses one shared
-data shape: `artist.name`, `image`, and `movement`. The duplicate mock dataset
-and stylesheet have been retired; the demo uses the three complete local records.
-
-The original `details.html`, `script.js`, and `styles.css` remain as prototype
-references; the React app starts from `index.html` and uses `src/styles.css`.
+The React entry point is `src/main.jsx`. Shared state and route definitions live
+in `src/App.jsx`, and routed detail loading lives in `src/components/RoutePages.jsx`.
+The root-level HTML/CSS prototypes are not the active React application.
 
 ### Artwork sources & assistance
 
-Artwork metadata and public-domain images are from the Art Institute of Chicago:
-[Seurat](https://www.artic.edu/artworks/27992),
-[Van Gogh](https://www.artic.edu/artworks/28560), and
-[Monet](https://www.artic.edu/artworks/16568).
-Descriptions, bios, and context are short demo summaries, not museum quotations.
-Bundled images use public-domain copies from Wikimedia Commons; see
-[image credits](public/images/README.md) for the source of each file.
+Artwork metadata and images come from The Metropolitan Museum of Art.
+See [image credits](public/images/README.md) for the bundled collection.
 
 AI assistance is recorded in [AI-USAGE.md](AI-USAGE.md). The existing
 [course policy](ai-policy.md) marks M1-M2 as AI-free; disclosure does not override

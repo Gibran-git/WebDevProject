@@ -1177,3 +1177,8 @@ label.picker-tile > input {
         padding: 20px;
     }
 }
+
+/* Navigation links retain the existing card and header presentation. */
+.artwork-open, a.artwork-card, .brand, .nav-button, .account-button {
+    text-decoration: none;
+}

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import ArtworkGrid from "./components/ArtworkGrid.jsx";
-import ArtworkDetail from "./components/ArtworkDetail.jsx";
+import { Route, Routes, useLocation, useNavigate } from "react-router";
+import { ArtworkRoute, BoardRoute, NotFound } from "./components/RoutePages.jsx";
 import { artworks as localArtworks, OfflineImagesContext } from "./data/artworks.js";
 import { fetchArtworks, eraFromYear, MET_MUSEUM_NAME } from "./api/met.js";
 import CollectionControls from "./components/CollectionControls.jsx";
@@ -84,7 +85,6 @@ const FETCH_TIMEOUT_MS = 12000; // allow the loader to inspect a later search pa
 // stop starting new detail batches after this long and show partial results (leaves room for in-flight requests)
 const FETCH_BUDGET_MS = 8500;
 const SKELETON_COUNT = 6;
-const BACK_LABELS = { collection: "collection", community: "community boards", account: "your account" };
 
 // keep the selected category if the new results still have it, otherwise go back to "All"
 const keepIfPresent = (list) => (previous) => (
@@ -120,19 +120,17 @@ export default function App() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const usingFallback = !loading && error !== null;
-    const [selectedArtwork, setSelectedArtwork] = useState(null);
+    const location = useLocation();
+    const navigate = useNavigate();
     // AI-assisted - see AI-USAGE.md #6
     const [storedArtworks, setSavedArtworks] = useState(() => JSON.parse(localStorage.getItem("savedArtworks")) ?? []);
     const savedArtworks = storedArtworks.filter(isMetArtwork);
-    const [view, setView] = useState("collection");
-    const [selectedBoard, setSelectedBoard] = useState(null);
     const [threads, setThreads] = useState(() => {
         const saved = JSON.parse(localStorage.getItem("threads")) ?? [];
         return [...saved, ...starterThreads.filter((starter) => !saved.some((thread) => thread.id === starter.id))];
     });
     const [storedBoards, setMyboards] = useState(() => JSON.parse(localStorage.getItem("myBoards")) ?? []);
     const myBoards = storedBoards.map((board) => ({ ...board, artworks: (board.artworks ?? []).filter(isMetArtwork) }));
-    const [boardForm, setBoardForm] = useState(null);
     
     // search / filter / sort state
     const [searchInput, setSearchInput] = useState(""); // what's typed in the box (controlled input)
@@ -181,22 +179,14 @@ export default function App() {
         return loadCollection(query, 12, signal);
     }
 
-    function showView(nextView){
-        setSelectedArtwork(null);
-        setSelectedBoard(null);
-        setBoardForm(null);
-        setView(nextView);
-    }
-
     function handleLogoClick(){
-        showView("collection");
         setSearchInput("");
         if(activeQuery) runSearch("");
     }
 
     function handleSearchSubmit() {
         const query = searchInput.trim();
-        setView("collection");
+        navigate("/");
         runSearch(query);
     }
 
@@ -262,8 +252,7 @@ export default function App() {
     }
 // AI-assisted - see AI-USAGE.md #7
     function handleEditBoard(target) {
-        showView("account");
-        setBoardForm(target);
+        navigate("/account", { state: { editBoardId: target.id } });
     }
 
     function handleSaveBoard(board){
@@ -273,12 +262,11 @@ export default function App() {
             ? previousBoards.map((existing) => existing.id === board.id ? board : existing)
             : [...previousBoards, {...board, id: Date.now() }]
         ));
-        setBoardForm(null);
     }
 
     function handleDeleteBoard(id){
         setMyboards((previousBoards) => previousBoards.filter((board) => board.id !== id));
-        if (selectedBoard?.id === id) setSelectedBoard(null);
+        if (location.pathname === `/boards/${id}`) navigate("/account", { replace: true });
     }
 
     // AI-assisted - see AI-USAGE.md #6
@@ -296,7 +284,9 @@ export default function App() {
 
     useEffect(() => {
         headingRef.current?.focus();
-    }, [selectedArtwork, view, selectedBoard]);
+        const heading = headingRef.current;
+        if (heading) document.title = `${heading.textContent.trim()} | Exhibito`;
+    }, [location]);
 
     return (
         <OfflineImagesContext.Provider value={usingFallback}>
@@ -305,147 +295,151 @@ export default function App() {
                 searchInput = {searchInput}
                 onSearchInputChange = {setSearchInput}
                 onSearchSubmit = {handleSearchSubmit}
-                view = {view}
-                onShowView = {showView}
                 onLogoClick = {handleLogoClick}
             />
             <main id="main-content">
-                {selectedArtwork ? (
-                    // AI-assisted - see AI-USAGE.md #7
-                    <ArtworkDetail
-                        key = {selectedArtwork.id}
-                        artwork = {selectedArtwork}
-                        onBack = {() => setSelectedArtwork(null)}
-                        backLabel = {BACK_LABELS[view]}
-                        threads = {threads.filter((thread) => thread.artworkId === selectedArtwork.id)}
-                        onAddThread = {handleAddThread}
-                        onAddReply = {handleAddReply}
-                        onEditThread = {handleEditThread}
-                        onDeleteThread = {handleDeleteThread}
-                        onEditReply = {handleEditReply}
-                        onDeleteReply = {handleDeleteReply}
-                        headingRef={headingRef}
-                    />
-                ) : view === "community" || selectedBoard ? (
-                    <CommunityBoards
-                        boards = {publicBoards}
-                        selectedBoard = {selectedBoard}
-                        onSelectBoard = {setSelectedBoard}
-                        onSelectArtwork = {setSelectedArtwork}
-                        savedIds = {savedIds}
-                        onToggleSave = {handleToggleSave}
-                        onEditBoard = {handleEditBoard}
-                        onDeleteBoard = {handleDeleteBoard}
-                        backLabel = {BACK_LABELS[view]}
-                        headingRef = {headingRef}
-                    />
-                    ): view === "account" ? (
+                <Routes>
+                    <Route path="/:artworkId" element={
+                        // AI-assisted - see AI-USAGE.md #7
+                        <ArtworkRoute
+                            artworks={artworks}
+                            savedArtworks={savedArtworks}
+                            boards={myBoards}
+                            collectionOffline={usingFallback}
+                            threads={threads}
+                            onAddThread={handleAddThread}
+                            onAddReply={handleAddReply}
+                            onEditThread={handleEditThread}
+                            onDeleteThread={handleDeleteThread}
+                            onEditReply={handleEditReply}
+                            onDeleteReply={handleDeleteReply}
+                        />
+                    } />
+                    <Route path="/community" element={
+                        <CommunityBoards
+                            boards={publicBoards}
+                            savedIds={savedIds}
+                            onToggleSave={handleToggleSave}
+                            onEditBoard={handleEditBoard}
+                            onDeleteBoard={handleDeleteBoard}
+                            headingRef={headingRef}
+                        />
+                    } />
+                    <Route path="/boards/:boardId" element={
+                        <BoardRoute
+                            boards={[...communityBoards, ...myBoards]}
+                            savedIds={savedIds}
+                            onToggleSave={handleToggleSave}
+                            onEditBoard={handleEditBoard}
+                            onDeleteBoard={handleDeleteBoard}
+                            headingRef={headingRef}
+                        />
+                    } />
+                    <Route path="/account" element={
                         // AI-assisted - see AI-USAGE.md #7
                         <AccountPage
-                            savedArtworks = {savedArtworks}
-                            savedIds = {savedIds}
-                            myBoards = {myBoards}
-                            onSelectBoard = {setSelectedBoard}
-                            boardForm = {boardForm}
-                            onEditBoard = {handleEditBoard}
-                            onSaveBoard = {handleSaveBoard}
-                            onDeleteBoard = {handleDeleteBoard}
-                            onSelectArtwork = {setSelectedArtwork}
-                            onToggleSave = {handleToggleSave}
+                            savedArtworks={savedArtworks}
+                            savedIds={savedIds}
+                            myBoards={myBoards}
+                            onSaveBoard={handleSaveBoard}
+                            onDeleteBoard={handleDeleteBoard}
+                            onToggleSave={handleToggleSave}
                             // AI-assisted - see AI-USAGE.md #8
-                            onSearchArtworks = {searchArtworks}
-                            headingRef = {headingRef}
-                            />
-                    ):(
-                    <>
-                        <section className="collection-intro" aria-labelledby="collection-heading">
-                            <p className="eyebrow">The collection</p>
-                            <h1 id="collection-heading" ref={headingRef} tabIndex="-1">
-                                Every artwork has a story.
-                            </h1>
-                            <p>
-                                Explore a few favorites from {MET_MUSEUM_NAME}.
-                                Open a work to meet its artist and discover its story.
-                            </p>
-                        </section>
-                        <CollectionControls
-                            era={selectedEra}
-                            onEraChange={setSelectedEra}
-                            movement={selectedMovement}
-                            onMovementChange={setSelectedMovement}
-                            movements={movements.includes(selectedMovement) || selectedMovement === "All"
-                                ? movements
-                                : [...movements, selectedMovement]}
-                            sortKey={sortKey}
-                            onSortChange={setSortKey}
+                            onSearchArtworks={searchArtworks}
+                            headingRef={headingRef}
                         />
-                        {!loading && usingFallback && (
-                            // error state: we couldn't reach the met, so explain what's shown and offer a retry
-                            <div className="status-notice status-notice--warning" role="alert">
-                                <span>
-                                    Couldn't load artworks from The Metropolitan Museum of Art
-                                    {error ? ` (${error})` : ""}. Showing downloaded Met artworks
-                                    {activeQuery ? `, searched for “${activeQuery}”` : ""} instead.
-                                </span>
-                                <button className="text-button" type="button" onClick={() => runSearch(activeQuery)}>
-                                    Try again
-                                </button>
-                            </div>
-                        )}
-                        <section aria-labelledby="artworks-heading" aria-busy={loading}>
-                            <div className="section-heading">
-                                <h2 id="artworks-heading">
-                                    {activeQuery ? `Results for “${activeQuery}”` : "Selected artworks"}
-                                </h2>
-                                <span className="muted" role="status">
-                                    {loading
-                                        ? (activeQuery ? `Searching for “${activeQuery}”…` : "Loading artworks…")
-                                        : `${visibleArtworks.length} ${visibleArtworks.length === 1 ? "work" : "works"}`}
-                                </span>
-                            </div>
-                            {loading ? (
-                                // loading state: placeholder cards keep the layout from jumping
-                                <ul className="artwork-grid" aria-hidden="true">
-                                    {Array.from({ length: SKELETON_COUNT }, (_, i) => (
-                                        <li key={i} className="artwork-skeleton">
-                                            <span className="skeleton-image" />
-                                            <span className="skeleton-line" />
-                                            <span className="skeleton-line skeleton-line--short" />
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : visibleArtworks.length === 0 ? (
-                                // empty state: say why nothing matched and how to get results back
-                                <div className="empty-state">
-                                    <p className="empty-message">
-                                        {artworks.length === 0 && !usingFallback
-                                            ? `The Met returned no European paintings with images${activeQuery ? ` matching “${activeQuery}”` : ""}. Try a different search.`
-                                            : "No artworks match your search and filters."}
-                                    </p>
-                                    <div className="empty-actions">
-                                        {filtersActive && (
-                                            <button className="save-button" type="button" onClick={handleClearFilters}>
-                                                Clear filters
-                                            </button>
-                                        )}
-                                        {activeQuery && (
-                                            <button className="save-button" type="button" onClick={handleClearSearch}>
-                                                Clear search
-                                            </button>
-                                        )}
-                                    </div>
+                    } />
+                    <Route path="/" element={
+                        <>
+                            <section className="collection-intro" aria-labelledby="collection-heading">
+                                <p className="eyebrow">The collection</p>
+                                <h1 id="collection-heading" ref={headingRef} tabIndex="-1">
+                                    Every artwork has a story.
+                                </h1>
+                                <p>
+                                    Explore a few favorites from {MET_MUSEUM_NAME}.
+                                    Open a work to meet its artist and discover its story.
+                                </p>
+                            </section>
+                            <CollectionControls
+                                era={selectedEra}
+                                onEraChange={setSelectedEra}
+                                movement={selectedMovement}
+                                onMovementChange={setSelectedMovement}
+                                movements={movements.includes(selectedMovement) || selectedMovement === "All"
+                                    ? movements
+                                    : [...movements, selectedMovement]}
+                                sortKey={sortKey}
+                                onSortChange={setSortKey}
+                            />
+                            {!loading && usingFallback && (
+                                // error state: we couldn't reach the met, so explain what's shown and offer a retry
+                                <div className="status-notice status-notice--warning" role="alert">
+                                    <span>
+                                        Couldn't load artworks from The Metropolitan Museum of Art
+                                        {error ? ` (${error})` : ""}. Showing downloaded Met artworks
+                                        {activeQuery ? `, searched for “${activeQuery}”` : ""} instead.
+                                    </span>
+                                    <button className="text-button" type="button" onClick={() => runSearch(activeQuery)}>
+                                        Try again
+                                    </button>
                                 </div>
-                            ) : (
-                                <ArtworkGrid
-                                    artworks={visibleArtworks}
-                                    onSelectArtwork={setSelectedArtwork}
-                                    savedIds={savedIds}
-                                    onToggleSave={handleToggleSave}
-                                />
                             )}
-                        </section>
-                    </>
-                )}
+                            <section aria-labelledby="artworks-heading" aria-busy={loading}>
+                                <div className="section-heading">
+                                    <h2 id="artworks-heading">
+                                        {activeQuery ? `Results for “${activeQuery}”` : "Selected artworks"}
+                                    </h2>
+                                    <span className="muted" role="status">
+                                        {loading
+                                            ? (activeQuery ? `Searching for “${activeQuery}”…` : "Loading artworks…")
+                                            : `${visibleArtworks.length} ${visibleArtworks.length === 1 ? "work" : "works"}`}
+                                    </span>
+                                </div>
+                                {loading ? (
+                                    // loading state: placeholder cards keep the layout from jumping
+                                    <ul className="artwork-grid" aria-hidden="true">
+                                        {Array.from({ length: SKELETON_COUNT }, (_, i) => (
+                                            <li key={i} className="artwork-skeleton">
+                                                <span className="skeleton-image" />
+                                                <span className="skeleton-line" />
+                                                <span className="skeleton-line skeleton-line--short" />
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : visibleArtworks.length === 0 ? (
+                                    // empty state: say why nothing matched and how to get results back
+                                    <div className="empty-state">
+                                        <p className="empty-message">
+                                            {artworks.length === 0 && !usingFallback
+                                                ? `The Met returned no European paintings with images${activeQuery ? ` matching “${activeQuery}”` : ""}. Try a different search.`
+                                                : "No artworks match your search and filters."}
+                                        </p>
+                                        <div className="empty-actions">
+                                            {filtersActive && (
+                                                <button className="save-button" type="button" onClick={handleClearFilters}>
+                                                    Clear filters
+                                                </button>
+                                            )}
+                                            {activeQuery && (
+                                                <button className="save-button" type="button" onClick={handleClearSearch}>
+                                                    Clear search
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <ArtworkGrid
+                                        artworks={visibleArtworks}
+                                        savedIds={savedIds}
+                                        onToggleSave={handleToggleSave}
+                                    />
+                                )}
+                            </section>
+                        </>
+                    } />
+                    <Route path="*" element={<NotFound />} />
+                </Routes>
             </main>
             <footer className="site-footer">
                 <span>Exhibito · A little closer to art.</span>
