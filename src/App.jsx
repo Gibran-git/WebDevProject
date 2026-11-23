@@ -85,30 +85,43 @@ const FETCH_TIMEOUT_MS = 12000; // allow the loader to inspect a later search pa
 // stop starting new detail batches after this long and show partial results (leaves room for in-flight requests)
 const FETCH_BUDGET_MS = 8500;
 const SKELETON_COUNT = 6;
+const PAGE_SIZE = 24; // artworks per page; more than this in one go trips the met's rate limit
 
-// keep the selected category if the new results still have it, otherwise go back to "All"
-const keepIfPresent = (list) => (previous) => (
-    list.some((artwork) => artwork.movement === previous) ? previous : "All"
+// keep the selected era/category if the new results still have it, otherwise go back to "All"
+const keepIfPresent = (list, key) => (previous) => (
+    list.some((artwork) => artwork[key] === previous) ? previous : "All"
 );
 
-// loadCollection fetches artworks from the Met API 
-// with a timeout and fallback to local artworks
-async function loadCollection(query, limit, signal) {
+// one page of the downloaded artworks. the cursor remembers we're offline (and why)
+// so the next/previous pages keep paging the local copy instead of retrying the met
+function localPage(query, limit, page, error) {
+    const matches = localArtworks.filter((artwork) => matchesQuery(artwork, query));
+    const start = page * limit;
+    return {
+        results: matches.slice(start, start + limit),
+        error,
+        nextCursor: start + limit < matches.length ? { offline: true, error } : null,
+    };
+}
+
+// loadCollection fetches one page of artworks from the Met API
+// with a timeout and fallback to local artworks.
+// cursor comes from the previous page's nextCursor (null for the first page)
+async function loadCollection(query, limit, signal, { cursor = null, page = 0 } = {}) {
+    if (cursor?.offline) return localPage(query, limit, page, cursor.error);
     // create a timeout signal to limit how long we wait for the Met API response
     const timeout = AbortSignal.timeout(FETCH_TIMEOUT_MS);
     try {
-        const results = await fetchArtworks({
-            // pass the query, limit, time budget, and combined signal to fetchArtworks
-            query, limit, timeBudgetMs: FETCH_BUDGET_MS, signal: AbortSignal.any([signal, timeout]),
+        const { artworks: results, nextCursor } = await fetchArtworks({
+            // pass the query, limit, cursor, time budget, and combined signal to fetchArtworks
+            query, limit, cursor, timeBudgetMs: FETCH_BUDGET_MS, signal: AbortSignal.any([signal, timeout]),
         });
-        return { results: results.map(withEra), error: null }; // successful fetch from Met API
+        return { results: results.map(withEra), error: null, nextCursor }; // successful fetch from Met API
     } catch (err) {
         if (signal.aborted) return null; // the request was aborted by the caller
-        return {
-            // fallback to local artworks if the Met API request fails
-            results: localArtworks.filter((artwork) => matchesQuery(artwork, query)).slice(0, limit),
-            error: timeout.aborted ? "The request timed out." : err.message || "Failed to load artworks.",
-        };
+        // fallback to local artworks if the Met API request fails
+        const error = timeout.aborted ? "The request timed out." : err.message || "Failed to load artworks.";
+        return localPage(query, limit, page, error);
     }
 }
 
@@ -139,10 +152,17 @@ export default function App() {
     const [selectedEra, setSelectedEra] = useState("All");
     const [selectedMovement, setSelectedMovement] = useState("All");
     const [sortKey, setSortKey] = useState("relevance");
+
+    // page is 0-based. cursors[n] is where page n starts (from page n-1's nextCursor),
+    // so cursors.length > page + 1 means there's a next page
+    const [page, setPage] = useState(0);
+    const [cursors, setCursors] = useState([null]);
     const headingRef = useRef(null);
+    const artworksHeadingRef = useRef(null);
     const savedIds = savedArtworks.map((artwork) => artwork.id);
     const publicBoards = [... communityBoards, ...myBoards.filter((board) => board.isPublic)]
     const movements = [...new Set(artworks.map((artwork) => artwork.movement))].sort();
+    const eras = new Set(artworks.map((artwork) => artwork.era)); // CollectionControls keeps them in chronological order
     const visibleArtworks = sortArtworks(
         filterArtworks(artworks, {
             era: selectedEra,
@@ -151,26 +171,41 @@ export default function App() {
         sortKey,
     );
     const filtersActive = selectedEra !== "All" || selectedMovement !== "All";
+    const pageCursor = cursors[page];
+    const hasNextPage = cursors.length > page + 1 && cursors[page + 1] !== null;
     useEffect(() => {
-        // effect to load artworks whenever the active query or request ID changes
+        // effect to load a page of artworks whenever the active query, request ID or page changes
         const controller = new AbortController();
-        loadCollection(activeQuery, undefined, controller.signal) // fetch artworks from the Met API
+        loadCollection(activeQuery, PAGE_SIZE, controller.signal, { cursor: pageCursor, page }) // fetch artworks from the Met API
             .then((response) => {
                 if (controller.signal.aborted) return; // request was aborted, do not update state
-                const { results, error } = response; // destructure the response from the Met API
+                const { results, error, nextCursor } = response; // destructure the response from the Met API
                 setArtworks(results);
-                setSelectedMovement(keepIfPresent(results));
+                setSelectedEra(keepIfPresent(results, "era"));
+                setSelectedMovement(keepIfPresent(results, "movement"));
                 setError(error);
+                // remember where the next page starts (null = this is the last page)
+                setCursors((previous) => [...previous.slice(0, page + 1), nextCursor]);
                 setLoading(false);
             });
         return () => controller.abort(); // cleanup function to abort the request if the component unmounts or dependencies change
-    }, [activeQuery, requestId]);
+    }, [activeQuery, requestId, page, pageCursor]);
 
     function runSearch(query) {
         // loading is set here instead of in the effect so the effect never sets state synchronously
         setActiveQuery(query);
         setRequestId((id) => id + 1);
+        setPage(0);
+        setCursors([null]);
         setLoading(true);
+    }
+
+    function goToPage(nextPage) {
+        setPage(nextPage);
+        setLoading(true);
+        // bring the top of the results back into view (and move focus there for keyboard/screen reader users)
+        artworksHeadingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        artworksHeadingRef.current?.focus({ preventScroll: true });
     }
 
     // AI-assisted - see AI-USAGE.md #8
@@ -364,6 +399,7 @@ export default function App() {
                             <CollectionControls
                                 era={selectedEra}
                                 onEraChange={setSelectedEra}
+                                eras={eras}
                                 movement={selectedMovement}
                                 onMovementChange={setSelectedMovement}
                                 movements={movements.includes(selectedMovement) || selectedMovement === "All"
@@ -371,6 +407,7 @@ export default function App() {
                                     : [...movements, selectedMovement]}
                                 sortKey={sortKey}
                                 onSortChange={setSortKey}
+                                paginated={page > 0 || hasNextPage}
                             />
                             {!loading && usingFallback && (
                                 // error state: we couldn't reach the met, so explain what's shown and offer a retry
@@ -387,13 +424,15 @@ export default function App() {
                             )}
                             <section aria-labelledby="artworks-heading" aria-busy={loading}>
                                 <div className="section-heading">
-                                    <h2 id="artworks-heading">
+                                    <h2 id="artworks-heading" ref={artworksHeadingRef} tabIndex="-1">
                                         {activeQuery ? `Results for “${activeQuery}”` : "Selected artworks"}
                                     </h2>
                                     <span className="muted" role="status">
                                         {loading
-                                            ? (activeQuery ? `Searching for “${activeQuery}”…` : "Loading artworks…")
-                                            : `${visibleArtworks.length} ${visibleArtworks.length === 1 ? "work" : "works"}`}
+                                            ? (page > 0
+                                                ? `Loading page ${page + 1}…`
+                                                : activeQuery ? `Searching for “${activeQuery}”…` : "Loading artworks…")
+                                            : `${page > 0 || hasNextPage ? `Page ${page + 1} · ` : ""}${visibleArtworks.length} ${visibleArtworks.length === 1 ? "work" : "works"}`}
                                     </span>
                                 </div>
                                 {loading ? (
@@ -434,6 +473,28 @@ export default function App() {
                                         savedIds={savedIds}
                                         onToggleSave={handleToggleSave}
                                     />
+                                )}
+                                {(page > 0 || hasNextPage) && (
+                                    // the met only gives us ~24 works per load before rate-limiting, so page through the rest
+                                    <nav className="pagination" aria-label="Artwork pages">
+                                        <button
+                                            className="save-button"
+                                            type="button"
+                                            onClick={() => goToPage(page - 1)}
+                                            disabled={loading || page === 0}
+                                        >
+                                            ← Previous
+                                        </button>
+                                        <span className="muted">Page {page + 1}</span>
+                                        <button
+                                            className="save-button"
+                                            type="button"
+                                            onClick={() => goToPage(page + 1)}
+                                            disabled={loading || !hasNextPage}
+                                        >
+                                            Next →
+                                        </button>
+                                    </nav>
                                 )}
                             </section>
                         </>

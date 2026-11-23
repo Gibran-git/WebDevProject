@@ -174,7 +174,15 @@ async function searchIds(query, limit, offset, signal) {
   return ids;
 }
 
-export async function fetchArtworks({ query = "", limit = 24, timeBudgetMs = Infinity, signal } = {}) {
+/*
+  pagination implementation below
+  important note.. the met can't tell us up front which search hits have a usable
+  image, so eg "page 3" can't be computed as an offset. instead each call returns
+  a nextCursor ({ page, index } = search page + position inside it) that says
+  where it stopped scanning, and the next call resumes from there. pass cursor
+  back in to get the next page; nextCursor is null once the met runs out
+*/
+export async function fetchArtworks({ query = "", limit = 24, cursor = null, timeBudgetMs = Infinity, signal } = {}) {
   const startedAt = Date.now();
   // a user search replaces the preset queries; an empty search falls back to the presets for variety
   const trimmed = query.trim(); // remove leading/trailing whitespace from the query
@@ -185,35 +193,57 @@ export async function fetchArtworks({ query = "", limit = 24, timeBudgetMs = Inf
     const idLists = await Promise.all(queries.map((q) => searchIds(q, perQuery, offset, signal)));
     const longest = Math.max(0, ...idLists.map((list) => list.length));
     const interleaved = Array.from({ length: longest }, (_, index) => idLists.map((list) => list[index])).flat();
-    return [...new Set(interleaved.filter((id) => id !== undefined))];
+    return {
+      ids: [...new Set(interleaved.filter((id) => id !== undefined))],
+      // every query came back short, so there's no further search page to ask for
+      isLast: idLists.every((list) => list.length < perQuery),
+    };
   }
 
-  let page = 0;
-  let ids = await candidateIds(page);
+  const startPage = cursor?.page ?? 0;
+  let page = startPage;
+  let { ids, isLast } = await candidateIds(page);
+  let i = Math.min(cursor?.index ?? 0, ids.length);
   let detailError;
+  let exhausted = false;
 
   // met has no fields= filter: each object is a separate/individual request, and bursts get rate-limited (403). fetch a few at a time and stop once we have enough
-  const artworks = [];
-  let i = 0;
-  while (artworks.length < limit) {
+  // each entry remembers where its id sat so the cursor can resume right after the last one we return
+  const found = [];
+  const seen = new Set(); // different preset queries can return the same painting on different search pages
+  const add = (artwork, at) => {
+    if (!artwork || seen.has(artwork.id)) return;
+    seen.add(artwork.id);
+    found.push({ artwork, page, index: at });
+  };
+  while (found.length < limit) {
     if (i >= ids.length) {
-      if (ids.length === 0 || page + 1 >= MAX_SEARCH_PAGES) break;
+      if (isLast || ids.length === 0) {
+        exhausted = true;
+        break;
+      }
+      // cap the search pages scanned per call; the cursor picks up from the next one
+      if (page + 1 - startPage >= MAX_SEARCH_PAGES) {
+        page += 1;
+        i = 0;
+        break;
+      }
       page += 1;
-      ids = await candidateIds(page);
-      if (ids.length === 0) break;
+      ({ ids, isLast } = await candidateIds(page));
       i = 0;
       continue;
     }
     // AI-assisted (objectCache reads/writes in this loop) - see AI-USAGE.md #3
     // already-loaded artworks come straight from the cache, no request needed
     if (objectCache.has(ids[i])) {
-      const cached = objectCache.get(ids[i++]);
-      if (cached) artworks.push(cached);
+      add(objectCache.get(ids[i]), i);
+      i += 1;
       continue;
     }
-    // when the met is throttling us, return what we already have instead of timing out with nothing
-    if (artworks.length > 0 && Date.now() - startedAt > timeBudgetMs) break;
+    // when met is throttling us, return what we already have instead of timing out with nothing
+    if (found.length > 0 && Date.now() - startedAt > timeBudgetMs) break;
     // the next run of up to CONCURRENCY uncached ids, kept in order
+    const batchStart = i;
     const batch = [];
     while (i < ids.length && batch.length < CONCURRENCY && !objectCache.has(ids[i])) batch.push(ids[i++]);
     const results = await Promise.allSettled(batch.map((id) => getJson(`${API}/objects/${id}`, signal)));
@@ -226,10 +256,21 @@ export async function fetchArtworks({ query = "", limit = 24, timeBudgetMs = Inf
       }
       const artwork = r.value.primaryImageSmall ? toArtwork(r.value) : null;
       objectCache.set(batch[index], artwork);
-      if (artwork) artworks.push(artwork);
+      add(artwork, batchStart + index);
     });
   }
 
-  if (artworks.length === 0 && detailError) throw detailError;
-  return artworks.slice(0, limit);
+  if (found.length === 0 && detailError) throw detailError;
+
+  // a batch can overshoot the limit; the extras are cached, and the cursor
+  // points just past the last artwork we actually return so none are skipped
+  const returned = found.slice(0, limit);
+  let nextCursor = { page, index: i };
+  if (found.length > limit) {
+    const last = returned[returned.length - 1];
+    nextCursor = { page: last.page, index: last.index + 1 };
+  } else if (exhausted || (isLast && i >= ids.length)) {
+    nextCursor = null;
+  }
+  return { artworks: returned.map((entry) => entry.artwork), nextCursor };
 }

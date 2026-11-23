@@ -9,10 +9,13 @@ import { OfflineImagesContext, offlineImages } from "../data/artworks.js";
 // text placeholder instead of a broken-image icon
 export default function ArtworkImage({ artwork, className, ...imgProps }) {
   const offline = useContext(OfflineImagesContext);
-  const src = (offline && offlineImages.get(artwork.id)) || artwork.image;
-  const [failedSrc, setFailedSrc] = useState(null);
+  const localSrc = offlineImages.get(artwork.id);
+  // if the remote image fails, retry with the downloaded copy when we have one
+  const candidates = [...new Set([offline && localSrc, artwork.image, localSrc].filter(Boolean))];
+  const [failedSrcs, setFailedSrcs] = useState([]);
+  const src = candidates.find((candidate) => !failedSrcs.includes(candidate));
 
-  if (!src || src === failedSrc) {
+  if (!src) {
     return (
       // show placeholder if image fails to load or is missing
       <div className={`image-placeholder ${className ?? ""}`.trim()} role="img" aria-label={artwork.imageAlt || artwork.title}>
@@ -28,7 +31,7 @@ export default function ArtworkImage({ artwork, className, ...imgProps }) {
       src={src}
       alt={artwork.imageAlt || artwork.title}
       className={className}
-      onError={() => setFailedSrc(src)}
+      onError={() => setFailedSrcs((previous) => [...previous, src])}
     />
   );
 }

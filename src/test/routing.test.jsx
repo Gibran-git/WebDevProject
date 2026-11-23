@@ -32,7 +32,7 @@ function expectPath(path) {
 }
 beforeEach(() => {
     vi.resetAllMocks();
-    fetchArtworks.mockResolvedValue([artwork]);
+    fetchArtworks.mockResolvedValue({ artworks: [artwork], nextCursor: null });
     fetchArtworkById.mockResolvedValue(remote);
 });
 
@@ -91,7 +91,7 @@ test("missing artwork is distinct from transient errors and retry", async () => 
 });
 
 test("offline detail uses its own bundled image", async () => {
-    fetchArtworks.mockResolvedValue([]);
+    fetchArtworks.mockResolvedValue({ artworks: [], nextCursor: null });
     fetchArtworkById.mockRejectedValue(new Error("timeout"));
     open(`/${artwork.id}`);
     await screen.findByRole("heading", { name: artwork.title });
@@ -104,6 +104,22 @@ test("collection failure does not force a live detail offline", async () => {
     open(`/${artwork.id}`);
     await screen.findByRole("heading", { name: artwork.title });
     expect(screen.getByRole("img", { name: artwork.imageAlt }).getAttribute("src")).toBe(artwork.image);
+});
+
+test("blocked remote image falls back to the downloaded copy, then the placeholder", async () => {
+    fetchArtworkById.mockResolvedValueOnce(artwork);
+    const first = open(`/${artwork.id}`);
+    await screen.findByRole("heading", { name: artwork.title });
+    fireEvent.error(screen.getByRole("img", { name: artwork.imageAlt }));
+    const image = screen.getByRole("img", { name: artwork.imageAlt });
+    expect(image.getAttribute("src")).toBe(`/images/${artwork.id}.webp`);
+    fireEvent.error(image);
+    expect(screen.getByText("Image unavailable")).toBeTruthy();
+    first.unmount();
+    open("/met-999999");
+    await screen.findByRole("heading", { name: remote.title });
+    fireEvent.error(screen.getByRole("img", { name: remote.imageAlt }));
+    expect(screen.getByText("Image unavailable")).toBeTruthy();
 });
 
 test("late responses cannot replace the next artwork", async () => {
