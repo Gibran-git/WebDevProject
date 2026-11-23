@@ -1,3 +1,4 @@
+import { useLocation, useNavigate } from "react-router";
 import {useContext, useEffect, useId, useRef, useState} from "react";
 import ArtworkGrid from "./ArtworkGrid.jsx";
 import ArtworkImage from "./ArtworkImage.jsx"
@@ -236,7 +237,23 @@ function BoardForm ({board, savedArtworks, onSave, onCancel, onSearch}){
 }
 
 // AI-assisted - see AI-USAGE.md #5
-export default function AccountPage({ savedArtworks, savedIds, myBoards, boardForm, onEditBoard, onSaveBoard, onDeleteBoard, onSelectBoard, onSelectArtwork, onToggleSave, onSearchArtworks, headingRef}){
+export default function AccountPage({ savedArtworks, savedIds, myBoards, onSaveBoard, onDeleteBoard, onToggleSave, onSearchArtworks, headingRef}){
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [boardForm, onEditBoard] = useState(() =>
+        myBoards.find((board) => board.id === location.state?.editBoardId) ?? null,
+    );
+    useEffect(() => {
+        if (location.state?.editBoardId != null) {
+            navigate("/account", { replace: true, state: null });
+        }
+    }, [location.state, navigate]);
+
+    function saveBoard(board) {
+        onSaveBoard(board);
+        onEditBoard(null);
+    }
+
     return (
         <>
             {/* AI-assisted - see AI-USAGE.md #5 */}
@@ -253,7 +270,7 @@ export default function AccountPage({ savedArtworks, savedIds, myBoards, boardFo
                     key = {boardForm.id ?? "new"}
                     board = {boardForm === "new" ? null : boardForm}
                     savedArtworks = {savedArtworks}
-                    onSave = {onSaveBoard}
+                    onSave = {saveBoard}
                     onCancel = {() => onEditBoard(null)}
                     // AI-assisted - see AI-USAGE.md #8
                     onSearch = {onSearchArtworks}
@@ -274,7 +291,6 @@ export default function AccountPage({ savedArtworks, savedIds, myBoards, boardFo
                     ):(
                         <BoardList
                             boards = {myBoards}
-                            onSelectBoard = {onSelectBoard}
                             onEditBoard = {onEditBoard}
                             onDeleteBoard = {onDeleteBoard}
                         />
@@ -292,7 +308,6 @@ export default function AccountPage({ savedArtworks, savedIds, myBoards, boardFo
                         <ArtworkGrid
                             artworks = {savedArtworks}
                             savedIds = {savedIds}
-                            onSelectArtwork = {onSelectArtwork}
                             onToggleSave = {onToggleSave}
                         />
                     )}

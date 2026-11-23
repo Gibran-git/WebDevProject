@@ -132,8 +132,28 @@ const objectCache = new Map(); // object id -> artwork (or null if it has no ima
 async function getJson(url, signal) {
   // fetch json from the given url, respecting abort signal
   const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`Met request failed (${res.status})`);
+  if (!res.ok) {
+    const error = new Error(`Met request failed (${res.status})`);
+    error.status = res.status;
+    throw error;
+  }
   return res.json();
+}
+
+export async function fetchArtworkById(artworkId, { signal } = {}) {
+  if (!/^met-\d+$/.test(artworkId)) return null;
+  const objectId = Number(artworkId.slice(4));
+  if (!Number.isSafeInteger(objectId) || objectId <= 0) return null;
+  if (objectCache.has(objectId)) return objectCache.get(objectId);
+  try {
+    const record = await getJson(`${API}/objects/${objectId}`, signal);
+    const artwork = record.primaryImageSmall ? toArtwork(record) : null;
+    objectCache.set(objectId, artwork);
+    return artwork;
+  } catch (error) {
+    if (error.status === 404) return null;
+    throw error;
+  }
 }
 
 async function searchIds(query, limit, offset, signal) {
