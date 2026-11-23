@@ -425,14 +425,14 @@ export default function App() {
                             <section aria-labelledby="artworks-heading" aria-busy={loading}>
                                 <div className="section-heading">
                                     <h2 id="artworks-heading" ref={artworksHeadingRef} tabIndex="-1">
-                                        {activeQuery ? `Results for “${activeQuery}”` : "Selected artworks"}
+                                        {activeQuery ? `Results for “${activeQuery}”` : "Featured Artworks"}
                                     </h2>
                                     <span className="muted" role="status">
                                         {loading
                                             ? (page > 0
                                                 ? `Loading page ${page + 1}…`
                                                 : activeQuery ? `Searching for “${activeQuery}”…` : "Loading artworks…")
-                                            : `${page > 0 || hasNextPage ? `Page ${page + 1} · ` : ""}${visibleArtworks.length} ${visibleArtworks.length === 1 ? "work" : "works"}`}
+                                            : `${page > 0 || hasNextPage ? `Page ${page + 1} · ` : ""}`}
                                     </span>
                                 </div>
                                 {loading ? (
