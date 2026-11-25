@@ -116,3 +116,16 @@ My old code just overall looked very barebones and didnt fit the cleaner look of
   ```
 
 - **What it produced & what I changed:** It used cURL and Playwright to download a bunch of images (12.4 MiB total) without triggering Met's limits. It then created src/data/met-paintings.json, which is useful to have, but it made artworks.js load the catalog instead of holding hand-written data, so it also rewrote artworks.js and included a new OfflineImagesContext using React createContext. I fixed met.js, created a new loadCollection in Art.jsx helper to replace the old fetch/timeout/fallback code and updated communityBoards.js starter threads so that the thread data only uses what we have available to us in case Met is unavailable, then did some googling to refresh myself again on the Context object and updated the now outdated offline image handling in src/components using this new OfflineImagesContext. I made sure ArtworkCard passed the whole artwork when saving, ArtworkDetail no longer hardcodes the Chicago museum name, and countPage's artwork piscker was updated for the new search result format and shows a new offline message. Also updated public/images/README.md
+
+
+### #10 - Automated tests for DiscussionThreads and BoardForm
+- **Date:** 2026-11-24
+- **Member:** Gibran
+- **Tool / model:** Gemini (free)
+- **Files:** `src/test/forms.test.jsx`
+- **Prompt (verbatim):**
+
+  ```
+  I want to add automated component tests for our controlled forms in DiscussionThreads.jsx and AccountPage.jsx (BoardForm) using Vitest and React Testing Library, testing both empty-input validation and valid submissions. Walk me through how vi.fn() mock functions, render(), screen queries, and MemoryRouter work step by step so I can write and debug the tests myself.
+  ```
+- **What it produced & what I changed:** I used it to break down how Vitest mock functions (vi.fn), React Testing Library queries, and MemoryRouter work so I could write the tests. I wrote both form validation tests in forms.test.jsx, checking that submitting empty fields triggers the validation alert and blocks the submit handlers. I also made sure that valid inputs submit properly and reset the inputs. While running the tests I hit a few failures from typos and casing issues, like accidentally writing textcontent in all lowercase with an extra space so it returned undefined, and using a lowercase plain string in .toMatch() that failed because the actual alert message starts with a capital P. Once I fixed textContent and changed the matcher to a case-insensitive regex (/please enter a title and message/i), both tests passed. 
