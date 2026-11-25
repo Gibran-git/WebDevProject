@@ -129,3 +129,20 @@ My old code just overall looked very barebones and didnt fit the cleaner look of
   Help me refactor the repeated localStorage useState and useEffect logic in App.jsx \ into a reusable useLocalStorage custom hook to meets the Milestone 3 requirement. Explain how the hook works and which lines in App.jsx need to be replaced.
   ```
   - **What it produced & what I changed:** It explained how to pull the repeated localStorage read and write logic out of App.jsx into a single reusable custom hook, and pointed me to a tutorial video so I could understand lazy initialization and custom hooks before editing anything. I created src/hooks/useLocalStorage.js with try/catch error handling and an optional onLoad parameter so starterThreads still merge properly on initial load without reappearing if deleted. Then I replaced the three localStorage useState hooks in App.jsx (savedArtworks, threads, and myBoards) with useLocalStorage, removed the three old useEffect blocks that were manually calling localStorage.setItem, and ran Vitest to confirm all 23 tests still pass.
+
+
+### #12 - Board visibility filter on AccountPage
+- **Date:** 2026-11-25
+- **Member:** Gibran
+- **Tool / model:** Gemini (free)
+- **Files:** `src/components/AccountPage.jsx`
+- **Prompt (verbatim):**
+
+  ```
+Help me draft a simple All / Public / Private filter for the user's boards in AccountPage.jsx so it stays easy to follow and doesn't clash with the rest of the app's CSS.  Help me troubleshoot why the buttons aren't filtering yet 
+why do buttons render as plain default HTML buttons
+why switching between primary-button and save-button makes them resize and shift around when clicked.
+  ```
+
+- **What it produced & what I changed:** It gave me a simple useState setup and filter function to sort boards by all, public, or private inside AccountPage. When I tested it locally, the buttons weren't actually filtering at first because I forgot to swap myBoards out for filteredBoards on BoardList. They also rendered as plain default HTML buttons, so I tried applying our existing primary-button and save-button classes, but the buttons kept shifting and resizing whenever I clicked them since those two classes have different padding and widths. It helped me the classes with a small filterStyle helper that keeps the padding and border fixed and only switches the green background and text color on the active tab.
+

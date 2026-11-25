@@ -8,6 +8,8 @@ import {OfflineImagesContext} from "../data/artworks.js";
 const MAX_TITLE = 100;
 const MAX_DESCRIPTION = 200;
 
+
+
 // AI-assisted - see AI-USAGE.md #8
 
 function ArtworkPicker ({savedArtworks, selectedIds, onToggle, onSearch, onClose}){
@@ -240,6 +242,25 @@ function BoardForm ({board, savedArtworks, onSave, onCancel, onSearch}){
 export default function AccountPage({ savedArtworks, savedIds, myBoards, onSaveBoard, onDeleteBoard, onToggleSave, onSearchArtworks, headingRef}){
     const location = useLocation();
     const navigate = useNavigate();
+    // AI-assisted - see AI-USAGE.md #12
+    const [boardFilter, setBoardFilter] = useState("all");
+
+    const filteredBoards = myBoards.filter((board) => {
+        if (boardFilter === "public") return board.isPublic;
+        if (boardFilter === "private") return !board.isPublic;
+        return true;
+    });
+    // AI-assisted - see AI-USAGE.md #12
+    function filterStyle(isActive) {
+    return {
+        padding: "0.45rem 1rem",
+        borderRadius: "6px",
+        border: "1px solid #2f4f3e",
+        backgroundColor: isActive ? "#2f4f3e" : "transparent",
+        color: isActive ? "#ffffff" : "#2f4f3e",
+        cursor: "pointer",
+    };
+}
     const [boardForm, onEditBoard] = useState(() =>
         myBoards.find((board) => board.id === location.state?.editBoardId) ?? null,
     );
@@ -289,11 +310,24 @@ export default function AccountPage({ savedArtworks, savedIds, myBoards, onSaveB
                             You have not made any boards
                         </p>
                     ):(
-                        <BoardList
-                            boards = {myBoards}
-                            onEditBoard = {onEditBoard}
-                            onDeleteBoard = {onDeleteBoard}
-                        />
+                        <>
+                        // AI-assisted - see AI-USAGE.md #12
+                            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+                                <button type="button" style={filterStyle(boardFilter === "all")} onClick={() => setBoardFilter("all")}>All</button>
+                                <button type="button" style={filterStyle(boardFilter === "public")} onClick={() => setBoardFilter("public")}>Public</button>
+                                <button type="button" style={filterStyle(boardFilter === "private")} onClick={() => setBoardFilter("private")}>Private</button>
+                            </div>
+
+                            {filteredBoards.length === 0 ? (
+                                <p className="empty-message">No {boardFilter} boards yet.</p>
+                            ) : (
+                                <BoardList
+                                    boards={filteredBoards}
+                                    onEditBoard={onEditBoard}
+                                    onDeleteBoard={onDeleteBoard}
+                                />
+                    )}
+                </>
                     )}
                 </section>
                 <section className = "account-section" aria-labelledby = "saved-heading">
