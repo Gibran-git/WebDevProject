@@ -1,3 +1,30 @@
+### #1 - Original site design and React artwork detail/bio foundation
+- **Date:** 2026-10-28
+- **Member:** Sanhith
+- **Tool / model:** OpenAI Codex; exact model and plan/free-tier status were not verified in the original record.
+- **Files:** `src/App.jsx`, `src/main.jsx`, `src/components/ArtworkCard.jsx`, `src/components/ArtworkDetail.jsx`, `src/components/ArtistBio.jsx`, `src/data/artworks.js`, `src/styles.css`, `index.html`, `vite.config.js`, `package.json`, `package-lock.json`, `.gitignore`, `README.md`, and the original bundled images and credits in `public/images/`.
+- **Prompt (verbatim, recovered from the earlier AI-usage log):**
+
+  ```text
+  I need help designing the bio slice for the next milestone. Help choose a nice theme we can use and generate the initial vite/react detail and bio foundation for the visual style.
+  ```
+
+- **What it produced & what I changed:** It generated the initial Vite/React detail and bio foundation and the site's shared visual styling: a warm off-white background, forest-green accents, serif headings, white artwork cards, consistent spacing, and responsive collection/detail layouts. It also produced image enlargement, an expandable artist bio, keyboard focus styles, a skip-to-content link, and three local artwork records with demo descriptions, biographies, and context summaries. The foundation entered commit `b9436fe`; the catalog integration below retained its design, while later work replaced the original Chicago artwork data with Met records and removed the unsupported full-bio control.
+
+
+### #2 - Catalog integration while preserving the site design
+- **Date:** 2026-10-28
+- **Member:** Sanhith
+- **Tool / model:** OpenAI Codex; exact model and plan/free-tier status were not verified in the original record.
+- **Files:** `src/App.jsx`, `src/components/ArtworkCard.jsx`, `src/components/ArtworkGrid.jsx`, `src/styles.css`, `package.json`, `package-lock.json`, `eslint.config.js`, `.gitignore`, `README.md`, and the original AI-usage log; duplicate catalog data and stylesheet files were retired during integration.
+- **Prompt (verbatim, recovered from the earlier AI-usage log):**
+
+  ```text
+  Merge PR #23’s catalog into my artwork detail and bio branch. Keep my current site design, integrate filtering and saving, resolve conflicts, and preserve my teammate’s commits.
+  ```
+
+- **What it produced & what I changed:** It integrated the catalog foundation from PR #23 with the existing artwork detail and artist bio components, preserving the teammate's commits and adapting the catalog to the shared `artist.name`, `image`, and `movement` fields. It retained the existing page design and responsive stylesheet, then added matching movement-filter controls, separate open/save buttons, saved-state styling, and a saved-piece count; filters and saved items stayed in memory when returning from a detail view. The integration also resolved the missing detail-component reference and overlapping project configuration, with the resulting changes recorded in merge `0c7c9ea`; this entry documents integration of the teammate's catalog work rather than authorship of that original slice.
+
 
 
 
