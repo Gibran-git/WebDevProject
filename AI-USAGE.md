@@ -118,7 +118,19 @@ My old code just overall looked very barebones and didnt fit the cleaner look of
 - **What it produced & what I changed:** It used cURL and Playwright to download a bunch of images (12.4 MiB total) without triggering Met's limits. It then created src/data/met-paintings.json, which is useful to have, but it made artworks.js load the catalog instead of holding hand-written data, so it also rewrote artworks.js and included a new OfflineImagesContext using React createContext. I fixed met.js, created a new loadCollection in Art.jsx helper to replace the old fetch/timeout/fallback code and updated communityBoards.js starter threads so that the thread data only uses what we have available to us in case Met is unavailable, then did some googling to refresh myself again on the Context object and updated the now outdated offline image handling in src/components using this new OfflineImagesContext. I made sure ArtworkCard passed the whole artwork when saving, ArtworkDetail no longer hardcodes the Chicago museum name, and countPage's artwork piscker was updated for the new search result format and shows a new offline message. Also updated public/images/README.md
 
 
-### #10 - Automated tests for DiscussionThreads and BoardForm
+### #10 - useLocalStorage custom hook refactor
+- **Date:** 2026-11-24
+- **Member:** Gibran
+- **Tool / model:** Gemini (free)
+- **Files:** `src/hooks/useLocalStorage.js`, `src/App.jsx`
+- **Prompt (verbatim):**
+
+  ```
+  Help me refactor the repeated localStorage useState and useEffect logic in App.jsx \ into a reusable useLocalStorage custom hook to meets the Milestone 3 requirement. Explain how the hook works and which lines in App.jsx need to be replaced.
+  ```
+  - **What it produced & what I changed:** It explained how to pull the repeated localStorage read and write logic out of App.jsx into a single reusable custom hook, and pointed me to a tutorial video so I could understand lazy initialization and custom hooks before editing anything. I created src/hooks/useLocalStorage.js with try/catch error handling and an optional onLoad parameter so starterThreads still merge properly on initial load without reappearing if deleted. Then I replaced the three localStorage useState hooks in App.jsx (savedArtworks, threads, and myBoards) with useLocalStorage, removed the three old useEffect blocks that were manually calling localStorage.setItem, and ran Vitest to confirm all 23 tests still pass.
+
+ ### #11 - Automated tests for DiscussionThreads and BoardForm
 - **Date:** 2026-11-24
 - **Member:** Gibran
 - **Tool / model:** Gemini (free)
