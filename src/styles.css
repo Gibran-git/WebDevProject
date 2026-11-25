@@ -86,14 +86,17 @@ h2 {
 }
 
 .header-content {
-    display: flex;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "brand search navigation";
     align-items: center;
-    gap: 50px;
+    gap: 32px;
     min-height: 90px;
 }
 
 .brand {
+    grid-area: brand;
+    white-space: nowrap;
     border: 0;
     padding: 0;
     background: transparent;
@@ -106,16 +109,16 @@ h2 {
 }
 
 .header-nav {
+    grid-area: navigation;
     display: flex;
-    flex: 1;
     align-items: center;
-    justify-content: space-between;
-    gap: 50px;
+    gap: 24px;
 }
 
 .header-search {
+    grid-area: search;
     display: flex;
-    flex: 1;
+    min-width: 0;
     gap: 8px;
 }
 
@@ -128,6 +131,12 @@ h2 {
     color: inherit;
     background: white;
     font-size: 1.0rem;
+    min-height: 44px;
+}
+
+.header-search .primary-button {
+    flex-shrink: 0;
+    min-height: 44px;
 }
 
 .header-search input:focus-visible {
@@ -152,6 +161,10 @@ h2 {
 .account-button {
     display: flex;
     align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
     gap: 6px;
     border: 0;
     padding: 4px;
@@ -435,6 +448,19 @@ figcaption {
     color: var(--accent);
 }
 
+.artist-search {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.artist-search:hover {
+    text-decoration-thickness: 2px;
+}
+
 .artwork-facts {
     margin: 24px 0;
     padding: 18px 0;
@@ -656,6 +682,7 @@ dd {
 
 .pagination {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     align-items: center;
     gap: 16px;
@@ -1149,13 +1176,17 @@ label.picker-tile > input {
 @media (max-width: 800px) {
     
     .header-content {
-        flex-wrap: wrap;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "brand navigation"
+            "search search";
+        gap: 12px 20px;
         padding-top: 14px;
         padding-bottom: 14px;
     }
 
     .header-nav {
-        flex-wrap: wrap;
+        gap: 12px;
     }
 
     .artwork-grid {
@@ -1181,10 +1212,22 @@ label.picker-tile > input {
 
     .header-content {
         min-height: 76px;
+        column-gap: 8px;
     }
 
-    .header-search, .header-search input {
-        width: 100%;
+    .brand {
+        font-size: 1.65rem;
+    }
+
+    .nav-button {
+        font-size: 0.875rem;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+
+    .header-nav {
+        gap: 8px;
     }
 
     main {

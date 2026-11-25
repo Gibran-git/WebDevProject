@@ -228,6 +228,16 @@ export default function App() {
         runSearch(query);
     }
 
+    function handleArtistSearch(name) {
+        const query = name.trim();
+        setSearchInput(query);
+        setSelectedEra("All");
+        setSelectedMovement("All");
+        setSortKey("relevance");
+        navigate("/");
+        runSearch(query);
+    }
+
     function handleClearSearch() {
         setSearchInput("");
         runSearch("");
@@ -333,6 +343,7 @@ export default function App() {
                             savedArtworks={savedArtworks}
                             boards={myBoards}
                             collectionOffline={usingFallback}
+                            onSearchArtist={handleArtistSearch}
                             threads={threads}
                             onAddThread={handleAddThread}
                             onAddReply={handleAddReply}
