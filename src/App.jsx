@@ -11,6 +11,7 @@ import SiteHeader from "./components/SiteHeader.jsx";
 import CommunityBoards from "./components/CommunityBoards.jsx";
 import AccountPage from "./components/AccountPage.jsx";
 import {communityBoards, starterThreads } from "./data/communityBoards.js";
+import {useLocalStorage} from "./hooks/useLocalStorage.js";
 
 // search/filter/sort work on both met data and local fallback data
 
@@ -136,13 +137,15 @@ export default function App() {
     const location = useLocation();
     const navigate = useNavigate();
     // AI-assisted - see AI-USAGE.md #6
-    const [storedArtworks, setSavedArtworks] = useState(() => JSON.parse(localStorage.getItem("savedArtworks")) ?? []);
+    //Then edited by Gibran to use useLocalStorage hook
+    //AI-assisted - see AI-USAGE.md #11
+    const [storedArtworks, setSavedArtworks] = useLocalStorage("savedArtworks", []);    
     const savedArtworks = storedArtworks.filter(isMetArtwork);
-    const [threads, setThreads] = useState(() => {
-        const saved = JSON.parse(localStorage.getItem("threads")) ?? [];
-        return [...saved, ...starterThreads.filter((starter) => !saved.some((thread) => thread.id === starter.id))];
-    });
-    const [storedBoards, setMyboards] = useState(() => JSON.parse(localStorage.getItem("myBoards")) ?? []);
+    const [threads, setThreads] = useLocalStorage("threads", [], (saved) => [
+    ...saved,
+    ...starterThreads.filter((starter) => !saved.some((thread) => thread.id === starter.id)),
+]);
+    const [storedBoards, setMyboards] = useLocalStorage("myBoards", []);
     const myBoards = storedBoards.map((board) => ({ ...board, artworks: (board.artworks ?? []).filter(isMetArtwork) }));
     
     // search / filter / sort state
@@ -305,18 +308,7 @@ export default function App() {
     }
 
     // AI-assisted - see AI-USAGE.md #6
-    useEffect(() => {
-        localStorage.setItem("savedArtworks", JSON.stringify(storedArtworks));
-    }, [storedArtworks]);
-
-    useEffect(() => {
-        localStorage.setItem("threads", JSON.stringify(threads));
-    }, [threads]);
-
-    useEffect(() => {
-        localStorage.setItem("myBoards", JSON.stringify(storedBoards));
-    }, [storedBoards]);
-
+    
     useEffect(() => {
         headingRef.current?.focus();
         const heading = headingRef.current;
