@@ -310,8 +310,9 @@ export default function AccountPage({ savedArtworks, savedIds, myBoards, onSaveB
                             You have not made any boards
                         </p>
                     ):(
+                         // AI-assisted - see AI-USAGE.md #12
                         <>
-                        // AI-assisted - see AI-USAGE.md #12
+        
                             <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
                                 <button type="button" style={filterStyle(boardFilter === "all")} onClick={() => setBoardFilter("all")}>All</button>
                                 <button type="button" style={filterStyle(boardFilter === "public")} onClick={() => setBoardFilter("public")}>Public</button>
