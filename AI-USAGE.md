@@ -118,7 +118,7 @@ My old code just overall looked very barebones and didnt fit the cleaner look of
 - **What it produced & what I changed:** It used cURL and Playwright to download a bunch of images (12.4 MiB total) without triggering Met's limits. It then created src/data/met-paintings.json, which is useful to have, but it made artworks.js load the catalog instead of holding hand-written data, so it also rewrote artworks.js and included a new OfflineImagesContext using React createContext. I fixed met.js, created a new loadCollection in Art.jsx helper to replace the old fetch/timeout/fallback code and updated communityBoards.js starter threads so that the thread data only uses what we have available to us in case Met is unavailable, then did some googling to refresh myself again on the Context object and updated the now outdated offline image handling in src/components using this new OfflineImagesContext. I made sure ArtworkCard passed the whole artwork when saving, ArtworkDetail no longer hardcodes the Chicago museum name, and countPage's artwork piscker was updated for the new search result format and shows a new offline message. Also updated public/images/README.md
 
 
-### #11 - useLocalStorage custom hook refactor
+### #10 - useLocalStorage custom hook refactor
 - **Date:** 2026-11-24
 - **Member:** Gibran
 - **Tool / model:** Gemini (free)
@@ -131,7 +131,7 @@ My old code just overall looked very barebones and didnt fit the cleaner look of
   - **What it produced & what I changed:** It explained how to pull the repeated localStorage read and write logic out of App.jsx into a single reusable custom hook, and pointed me to a tutorial video so I could understand lazy initialization and custom hooks before editing anything. I created src/hooks/useLocalStorage.js with try/catch error handling and an optional onLoad parameter so starterThreads still merge properly on initial load without reappearing if deleted. Then I replaced the three localStorage useState hooks in App.jsx (savedArtworks, threads, and myBoards) with useLocalStorage, removed the three old useEffect blocks that were manually calling localStorage.setItem, and ran Vitest to confirm all 23 tests still pass.
 
 
-### #12 - Board visibility filter on AccountPage
+### #11 - Board visibility filter on AccountPage
 - **Date:** 2026-11-25
 - **Member:** Gibran
 - **Tool / model:** Gemini (free)
@@ -146,3 +146,14 @@ why switching between primary-button and save-button makes them resize and shift
 
 - **What it produced & what I changed:** It gave me a simple useState setup and filter function to sort boards by all, public, or private inside AccountPage. When I tested it locally, the buttons weren't actually filtering at first because I forgot to swap myBoards out for filteredBoards on BoardList. They also rendered as plain default HTML buttons, so I tried applying our existing primary-button and save-button classes, but the buttons kept shifting and resizing whenever I clicked them since those two classes have different padding and widths. It helped me the classes with a small filterStyle helper that keeps the padding and border fixed and only switches the green background and text color on the active tab.
 
+ ### #12 - Automated tests for DiscussionThreads and BoardForm
+- **Date:** 2026-11-24
+- **Member:** Gibran
+- **Tool / model:** Gemini (free)
+- **Files:** `src/test/forms.test.jsx`
+- **Prompt (verbatim):**
+
+  ```
+  I want to add automated component tests for our controlled forms in DiscussionThreads.jsx and AccountPage.jsx (BoardForm) using Vitest and React Testing Library, testing both empty-input validation and valid submissions. Walk me through how vi.fn() mock functions, render(), screen queries, and MemoryRouter work step by step so I can write and debug the tests myself.
+  ```
+- **What it produced & what I changed:** I used it to break down how Vitest mock functions (vi.fn), React Testing Library queries, and MemoryRouter work so I could write the tests. I wrote both form validation tests in forms.test.jsx, checking that submitting empty fields triggers the validation alert and blocks the submit handlers. I also made sure that valid inputs submit properly and reset the inputs. While running the tests I hit a few failures from typos and casing issues, like accidentally writing textcontent in all lowercase with an extra space so it returned undefined, and using a lowercase plain string in .toMatch() that failed because the actual alert message starts with a capital P. Once I fixed textContent and changed the matcher to a case-insensitive regex (/please enter a title and message/i), both tests passed. 
