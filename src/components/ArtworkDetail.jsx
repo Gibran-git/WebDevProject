@@ -4,8 +4,10 @@ import ArtistBio from "./ArtistBio.jsx";
 import ArtworkImage from "./ArtworkImage.jsx";
 import DiscussionThreads from "./DiscussionThreads.jsx";
 
-export default function ArtworkDetail({ artwork, onBack, backLabel, threads, onAddThread, onAddReply, onEditThread, onDeleteThread, onEditReply, onDeleteReply, headingRef }) {
+export default function ArtworkDetail({ artwork, onBack, backLabel, onSearchArtist, threads, onAddThread, onAddReply, onEditThread, onDeleteThread, onEditReply, onDeleteReply, headingRef }) {
     const [isZoomed, setIsZoomed] = useState(false);
+    const artistName = artwork.artist.name.trim();
+    const canSearchArtist = artistName && artistName.toLowerCase() !== "unknown artist";
 
     return (
         <>
@@ -43,7 +45,19 @@ export default function ArtworkDetail({ artwork, onBack, backLabel, threads, onA
                 <div>
                     <p className="eyebrow">{artwork.movement}</p>
                     <h1 ref={headingRef} tabIndex="-1">{artwork.title}</h1>
-                    <p className="artist-line">{artwork.artist.name} · {artwork.date}</p>
+                    <p className="artist-line">
+                        {canSearchArtist ? (
+                            <button
+                                className="artist-search"
+                                type="button"
+                                onClick={() => onSearchArtist(artistName)}
+                                aria-label={`Search artworks by ${artistName}`}
+                            >
+                                {artistName}
+                            </button>
+                        ) : artwork.artist.name}
+                        {" · "}{artwork.date}
+                    </p>
                     <p>{artwork.description}</p>
                     <dl className="artwork-facts">
                         <div><dt>Medium</dt><dd>{artwork.medium}</dd></div>

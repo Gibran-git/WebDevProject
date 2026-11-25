@@ -14,19 +14,20 @@ export default function SiteHeader({ searchInput, onSearchInputChange, onSearchS
                 }}>
                     Exhibito <span aria-hidden = "true">.</span>
                 </Link>
+                <form className = "header-search" role = "search" onSubmit = {handleSubmit}>
+                    <input
+                        type = "search"
+                        aria-label = "Search artworks"
+                        placeholder = "Search artworks"
+                        value = {searchInput}
+                        onChange = {(event) => onSearchInputChange(event.target.value)}
+                        maxLength = {100}
+                        autoComplete = "off"
+                        enterKeyHint = "search"
+                    />
+                    <button className = "primary-button" type = "submit">Search</button>
+                </form>
                 <nav className = "header-nav" aria-label = "Main">
-                    <form className = "header-search" role = "search" onSubmit = {handleSubmit}>
-                        <input
-                            type = "search"
-                            aria-label = "Search artworks"
-                            placeholder = "Search artworks"
-                            value = {searchInput}
-                            onChange = {(event) => onSearchInputChange(event.target.value)}
-                            maxLength = {100}
-                            autoComplete = "off"
-                        />
-                        <button className = "primary-button" type = "submit">Search</button>
-                    </form>
                     {/* AI-assisted - see AI-USAGE.md #5 */}
                     <NavLink
                         className = "nav-button"

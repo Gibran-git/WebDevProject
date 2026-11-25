@@ -72,6 +72,46 @@ test("direct artwork loads independently and search exits detail", async () => {
     expect(screen.queryByRole("heading", { name: remote.title })).toBeNull();
 });
 
+test("artist search fills the collection search and clears previous filters", async () => {
+    const user = userEvent.setup();
+    open();
+    await screen.findByRole("link", { name: /Explore artwork/ });
+    await user.selectOptions(screen.getByLabelText("Era"), artwork.era);
+    await user.selectOptions(screen.getByLabelText("Category"), artwork.movement);
+    await user.selectOptions(screen.getByLabelText("Sort by"), "title-desc");
+    await user.click(screen.getByRole("link", { name: /Explore artwork/ }));
+    await user.click(screen.getByRole("button", { name: `Search artworks by ${artwork.artist.name}` }));
+
+    expectPath("/");
+    expect(screen.getByRole("searchbox").value).toBe(artwork.artist.name);
+    expect(screen.getByLabelText("Era").value).toBe("All");
+    expect(screen.getByLabelText("Category").value).toBe("All");
+    expect(screen.getByLabelText("Sort by").value).toBe("relevance");
+    await waitFor(() => expect(fetchArtworks).toHaveBeenLastCalledWith(expect.objectContaining({
+        query: artwork.artist.name,
+        cursor: null,
+    })));
+    expect(await screen.findByRole("link", { name: /Explore artwork/ })).toBeTruthy();
+});
+
+test("artist search works by keyboard from a direct artwork visit", async () => {
+    const user = userEvent.setup();
+    open("/met-999999");
+    const artistButton = await screen.findByRole("button", { name: `Search artworks by ${remote.artist.name}` });
+    artistButton.focus();
+    await user.keyboard("{Enter}");
+    expectPath("/");
+    expect(screen.getByRole("searchbox").value).toBe(remote.artist.name);
+    await waitFor(() => expect(fetchArtworks).toHaveBeenLastCalledWith(expect.objectContaining({ query: remote.artist.name })));
+});
+
+test("unknown artists do not offer an artist search", async () => {
+    fetchArtworkById.mockResolvedValue({ ...remote, artist: { ...remote.artist, name: "Unknown artist" } });
+    open("/met-999999");
+    await screen.findByRole("heading", { name: remote.title });
+    expect(screen.queryByRole("button", { name: /Search artworks by/ })).toBeNull();
+});
+
 test.each(["/garbage", "/met-wrong", "/unknown/path", "/boards/missing"])("invalid route %s", async (path) => {
     open(path);
     expect(await screen.findByRole("heading", { name: /not found/i })).toBeTruthy();
