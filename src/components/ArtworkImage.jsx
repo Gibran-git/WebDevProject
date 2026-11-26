@@ -7,11 +7,11 @@ import { useContext, useState } from "react";
 import { OfflineImagesContext, offlineImages } from "../data/artworks.js";
 
 // text placeholder instead of a broken-image icon
-export default function ArtworkImage({ artwork, className, ...imgProps }) {
+export default function ArtworkImage({ artwork, className, highResolution = false, ...imgProps }) {
   const offline = useContext(OfflineImagesContext);
   const localSrc = offlineImages.get(artwork.id);
   // if the remote image fails, retry with the downloaded copy when we have one
-  const candidates = [...new Set([offline && localSrc, artwork.image, localSrc].filter(Boolean))];
+  const candidates = [...new Set([offline && localSrc, highResolution && artwork.fullImage, artwork.image, localSrc].filter(Boolean))];
   const [failedSrcs, setFailedSrcs] = useState([]);
   const src = candidates.find((candidate) => !failedSrcs.includes(candidate));
 
