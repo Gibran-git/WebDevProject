@@ -2,10 +2,11 @@
 import { useState } from "react";
 import ArtistBio from "./ArtistBio.jsx";
 import ArtworkImage from "./ArtworkImage.jsx";
+import ArtworkViewer from "./ArtworkViewer.jsx";
 import DiscussionThreads from "./DiscussionThreads.jsx";
 
 export default function ArtworkDetail({ artwork, onBack, backLabel, onSearchArtist, threads, onAddThread, onAddReply, onEditThread, onDeleteThread, onEditReply, onDeleteReply, headingRef }) {
-    const [isZoomed, setIsZoomed] = useState(false);
+    const [viewerOpen, setViewerOpen] = useState(false);
     const artistName = artwork.artist.name.trim();
     const canSearchArtist = artistName && artistName.toLowerCase() !== "unknown artist";
 
@@ -17,27 +18,18 @@ export default function ArtworkDetail({ artwork, onBack, backLabel, onSearchArti
             <div className="detail-layout">
                 <figure className="artwork-figure">
                     <div className="image-frame">
-                        <div
-                            id="artwork-image"
-                            className={`image-viewport${isZoomed ? " is-zoomed" : ""}`}
-                            tabIndex={isZoomed ? 0 : undefined}
-                            role="region"
-                            aria-label="Artwork image; scroll to explore when enlarged"
-                        >
+                        <button className="image-viewport artwork-preview" type="button"
+                            aria-label={`View ${artwork.title} fullscreen`} aria-haspopup="dialog"
+                            onClick={() => setViewerOpen(true)}>
                             {/* this used to live in ArtworkDetailModal, which was deleted in #24 (also news to me) */}
                             <ArtworkImage artwork={artwork} />
-                        </div>
+                        </button>
                     </div>
-                    <button
-                        className="text-button zoom-button"
-                        type="button"
-                        aria-expanded={isZoomed}
-                        aria-controls="artwork-image"
-                        onClick={() => setIsZoomed((zoomed) => !zoomed)}
-                    >
-                        {isZoomed ? "Reset image" : "Enlarge image"}
-                        <span aria-hidden="true"> {isZoomed ? "−" : "+"}</span>
+                    <button className="text-button zoom-button" type="button" aria-haspopup="dialog"
+                        onClick={() => setViewerOpen(true)}>
+                        View fullscreen
                     </button>
+                    {viewerOpen && <ArtworkViewer artwork={artwork} onClose={() => setViewerOpen(false)} />}
                     <figcaption>
                         {[artwork.museum, artwork.credit].filter(Boolean).join(" · ")}
                     </figcaption>

@@ -91,6 +91,7 @@ export function toArtwork(record) {
     year: typeof record.objectBeginDate === "number" ? record.objectBeginDate : null, // extract the year from the object begin date if available
     era: eraFromYear(record.objectBeginDate), // backward-compatible era determination based on the object begin date
     image: record.primaryImageSmall,
+    fullImage: record.primaryImage || record.primaryImageSmall,
     // the met doesn't provide alt text, so this is the best we can do without writing it by hand
     imageAlt: `${title} by ${name}`,
     description: `${title} by ${name}${record.objectDate ? `, ${record.objectDate}` : ""}.`,
